@@ -1,11 +1,46 @@
-"""FastAPI 应用入口。"""
+"""FastAPI 应用入口：路由挂载、CORS、统一响应信封。"""
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from app.api import convert
+from app.core import config
+from app.core.responses import fail
 
 app = FastAPI(title="Format Conversion API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[config.FRONTEND_ORIGIN],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.include_router(convert.router)
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
     """健康检查，供部署探针使用。"""
     return {"status": "ok"}
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(
+    request: Request, exc: StarletteHTTPException
+) -> JSONResponse:
+    """HTTP 异常统一转信封（不暴露堆栈/路径）。"""
+    return JSONResponse(
+        status_code=exc.status_code, content=fail(exc.status_code, str(exc.detail))
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    """参数校验失败统一转信封。"""
+    return JSONResponse(status_code=400, content=fail(400, "请求参数无效"))
