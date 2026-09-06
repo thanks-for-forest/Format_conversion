@@ -5,7 +5,7 @@
 ## 当前阶段
 
 - 阶段：**实现阶段（初始化切片完成）**
-- 状态：PRD v0.3 / ARCH v0.3 / CONVENTIONS v0.4 定稿；仓库已初始化（main），质量闸门与 CI 就绪
+- 状态：PRD v0.3.1 / ARCH v0.3 / CONVENTIONS v0.4 定稿；仓库已初始化（main），质量闸门与 CI 就绪
 
 ## 已固化决策
 
