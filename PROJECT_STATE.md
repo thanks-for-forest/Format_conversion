@@ -24,3 +24,9 @@
 
 1. 切片 4：更多格式与本地 Wasm 转换引擎
 2. docker-compose 部署切片：含 sweeper 定时清扫（超时未下载的临时文件与过期记录）
+
+## 本地运行（开发）
+
+- API：`cd backend && uv run uvicorn app.main:app --port 8010`（需先 `uv run alembic upgrade head` 建表；`.env` 或环境变量设 DATABASE_URL / REDIS_URL）
+- Worker：`cd backend && uv run celery -A app.workers.celery_app worker -P solo -l info`（Windows 需 `-P solo`，prefork 不支持）
+- 测试：无需 Redis（conftest 设 `CELERY_TASK_ALWAYS_EAGER=1` 同步执行）

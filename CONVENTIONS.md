@@ -1,6 +1,6 @@
 # 开发规范（CONVENTIONS）
 
-> 版本：v0.4　关联 ARCH v0.3　更新日期：2026-09-06
+> 版本：v0.5　关联 ARCH v0.6.1　更新日期：2026-09-06
 
 ## 1. 语言与工具链
 
@@ -64,6 +64,7 @@
 - **pre-commit**：Ruff check/format、Mypy（增量）、ESLint、Prettier。
 - **CI**：后端 Ruff + Mypy + Pytest；前端 ESLint + `tsc` + build。
 - **依赖锁定**：`uv.lock` / `pnpm-lock.yaml` 必须提交，禁止裸安装导致版本漂移。
+- **依赖声明**：运行必需依赖必须在 pyproject/package.json 显式声明；禁止依赖本地 venv 遗留（CI 全新安装会失败，如切片 3 的 pillow / python-multipart）。
 - **漏洞扫描**：CI 跑 `pip-audit` / `npm audit`（或 Dependabot），高危依赖阻断合并。
 - 合并到 `main` 前必须全绿，禁止跳过钩子。
 
