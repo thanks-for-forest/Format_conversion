@@ -9,7 +9,10 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from app.core import config
+from app.core.database import get_session
 from app.main import app
+from app.models.task import ConversionTask
+from app.workers.convert_task import run_conversion
 
 client = TestClient(app)
 
@@ -105,3 +108,29 @@ def test_reject_oversize(
         "/api/convert", files={"file": ("big.png", _png_bytes(), "image/png")}
     )
     assert resp.status_code == 413
+
+
+def test_enqueue_failure_marks_failed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """投递 Celery 失败（broker 不可用）：返回 503，任务落 failed。"""
+    monkeypatch.setattr(config, "TMP_DIR", tmp_path)
+    monkeypatch.setattr(
+        run_conversion, "delay", lambda _task_id: (_ for _ in ()).throw(RuntimeError)
+    )
+    resp = client.post(
+        "/api/convert", files={"file": ("z.png", _png_bytes(), "image/png")}
+    )
+    assert resp.status_code == 503
+    assert "系统繁忙" in resp.json()["message"]
+
+    with get_session() as session:
+        failed = (
+            session.query(ConversionTask)
+            .filter(ConversionTask.status == "failed")
+            .order_by(ConversionTask.created_at.desc())
+            .first()
+        )
+    assert failed is not None
+    assert failed.status == "failed"
+    assert "系统繁忙" in failed.message

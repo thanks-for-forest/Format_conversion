@@ -1,6 +1,6 @@
 # 架构草案（ARCH）
 
-> 版本：v0.4　关联 PRD v0.3　更新日期：2026-09-06
+> 版本：v0.6.1　关联 PRD v0.3　更新日期：2026-09-06
 
 ## 1. 技术栈（定稿）
 
@@ -179,3 +179,6 @@ rejected(审核/配额拦截)  ←─ 上传
 | v0.2 | 加 Nginx、鉴权/状态机/API/安全隔离/CI | 大文件经 Next.js 代理是坑；安全与质量闸门未落地 |
 | v0.3 | 加匿名 pass_key、兜底清扫、fail-closed、配额口径、WAL、流式落盘、SVG 消毒、LibreOffice profile | 二审修正数据正确性与应用安全细节 |
 | v0.4 | 切片2 以进程内后台线程实现异步队列（5 态状态机），Celery+Redis+SQLite 合并延后到切片3 | Celery worker 是独立进程，无法读写 API 进程内存 TaskStore；先落库再上 Celery 才能保证状态跨进程一致 |
+| v0.5 | 切片3a：SQLite+SQLAlchemy/Alembic 落库 ConversionTask 替换内存 TaskStore（WAL、惰性引擎、session-per-operation DAO），文件路径改为 id+格式派生属性不落库；Celery+Redis 延后到切片3b | 先落库再上 Celery 的中间态；路径可按 `{id}.{format}` 确定性重建，避免冗余路径列 |
+| v0.6 | 切片3b：Celery+Redis（broker）替换进程内线程 worker；任务状态仍落 DB（不启用 result backend）；API 投递前 mark_queued，投递失败标记 failed 并 503；测试与 CI 用 `CELERY_TASK_ALWAYS_EAGER=1`，无需真实 Redis | 状态已落库，worker 独立进程可读写同一 DB 保持一致；eager 模式让单测无外部依赖；broker 不可用须显式失败提示用户重试 |
+| v0.6.1 | 真实 broker 验证（WSL2 + docker redis:7）修复：Celery 实例加 `include=["app.workers.convert_task"]`；pyproject 补声明 pillow/python-multipart；conftest 先设 env 再 import app | worker 不会自动发现任务模块，缺 include 则消息积压不执行（真实验证暴露）；两依赖本地靠 venv 遗留、CI 全新安装必失败；config 导入期固化导致测试污染真实 DB |

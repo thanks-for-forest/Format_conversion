@@ -1,95 +1,97 @@
-"""内存任务存储（切片 1 临时实现，后续迁移 SQLite + Celery）。"""
+"""任务存储 DAO：SQLite 落库（切片 3a，替换进程内内存实现）。"""
 
-import threading
-import time
 import uuid
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any
+from datetime import UTC, datetime
+
+from app.core.database import get_session
+from app.models.task import ConversionTask
 
 
-@dataclass
-class Task:
-    """一次转换任务。"""
-
-    id: str
-    pass_key: str
-    status: str  # pending | queued | running | succeeded | failed
-    message: str
-    source_name: str
-    target_ext: str
-    in_size: int
-    out_size: int | None
-    created_at: float
-    finished_at: float | None = None
-    files_removed: bool = False
-    in_path: Path | None = field(default=None, repr=False)
-    out_path: Path | None = field(default=None, repr=False)
-
-    def public(self) -> dict[str, Any]:
-        """对外暴露字段（不含内部路径与 pass_key）。"""
-        return {
-            "task_id": self.id,
-            "status": self.status,
-            "message": self.message,
-            "source_name": self.source_name,
-            "target_ext": self.target_ext,
-            "in_size": self.in_size,
-            "out_size": self.out_size,
-            "files_removed": self.files_removed,
-        }
+def _now() -> datetime:
+    """当前 UTC 时间，作终态时间戳。"""
+    return datetime.now(UTC)
 
 
 class TaskStore:
-    """进程内任务表（含锁；重启即失，切片 1 可接受）。"""
+    """转换任务持久化仓库（session-per-operation，线程安全）。"""
 
-    def __init__(self) -> None:
-        self._lock = threading.Lock()
-        self._tasks: dict[str, Task] = {}
-
-    def create(self, source_name: str, target_ext: str = "jpg") -> Task:
-        now = time.time()
-        task = Task(
+    def create(
+        self, source_name: str, source_format: str, target_format: str
+    ) -> ConversionTask:
+        """新建任务并落库，返回含 id/pass_key 的实例。"""
+        task = ConversionTask(
             id=uuid.uuid4().hex,
             pass_key=uuid.uuid4().hex,
-            status="pending",
-            message="等待处理",
             source_name=source_name,
-            target_ext=target_ext,
-            in_size=0,
-            out_size=None,
-            created_at=now,
+            source_format=source_format,
+            target_format=target_format,
         )
-        with self._lock:
-            self._tasks[task.id] = task
+        with get_session() as session:
+            session.add(task)
+            session.commit()
         return task
 
-    def get(self, task_id: str) -> Task | None:
-        with self._lock:
-            return self._tasks.get(task_id)
+    def get(self, task_id: str) -> ConversionTask | None:
+        """按主键读取任务（返回分离实例，标量字段已加载）。"""
+        with get_session() as session:
+            return session.get(ConversionTask, task_id)
 
-    def mark_queued(self, task: Task) -> None:
-        with self._lock:
+    def set_in_size(self, task_id: str, size: int) -> None:
+        """记录上传体积。"""
+        with get_session() as session:
+            task = session.get(ConversionTask, task_id)
+            if task is None:
+                return
+            task.in_size = size
+            session.commit()
+
+    def mark_queued(self, task_id: str) -> None:
+        with get_session() as session:
+            task = session.get(ConversionTask, task_id)
+            if task is None:
+                return
             task.status = "queued"
             task.message = "已排队"
+            session.commit()
 
-    def mark_running(self, task: Task) -> None:
-        with self._lock:
+    def mark_running(self, task_id: str) -> None:
+        with get_session() as session:
+            task = session.get(ConversionTask, task_id)
+            if task is None:
+                return
             task.status = "running"
             task.message = "转换中"
+            session.commit()
 
-    def mark_failed(self, task: Task, message: str) -> None:
-        with self._lock:
+    def mark_failed(self, task_id: str, message: str) -> None:
+        with get_session() as session:
+            task = session.get(ConversionTask, task_id)
+            if task is None:
+                return
             task.status = "failed"
             task.message = message
-            task.finished_at = time.time()
+            task.finished_at = _now()
+            session.commit()
 
-    def mark_succeeded(self, task: Task, out_size: int) -> None:
-        with self._lock:
+    def mark_succeeded(self, task_id: str, out_size: int) -> None:
+        with get_session() as session:
+            task = session.get(ConversionTask, task_id)
+            if task is None:
+                return
             task.status = "succeeded"
             task.message = "转换完成"
             task.out_size = out_size
-            task.finished_at = time.time()
+            task.finished_at = _now()
+            session.commit()
+
+    def mark_files_removed(self, task_id: str) -> None:
+        """标记临时文件已删除（下载即删）。"""
+        with get_session() as session:
+            task = session.get(ConversionTask, task_id)
+            if task is None:
+                return
+            task.files_removed = True
+            session.commit()
 
 
 STORE = TaskStore()

@@ -4,8 +4,10 @@
 
 ## 当前阶段
 
-- 阶段：**实现阶段（切片 2 完成）**
-- 状态：切片 2 已跑通——任务状态机 pending→queued→running→succeeded/failed + 进程内后台线程异步化；上传秒回 queued，前端轮询到终态后下载；质量闸门全绿（ruff/mypy/pytest/tsc/eslint/build）
+- 阶段：**实现阶段（切片 3b 完成）**
+- 状态：切片 3b 已跑通——Celery + Redis（broker）异步队列替换进程内线程 worker；上传后 `run_conversion.delay(task_id)` 投递，任务状态落库跨进程一致；API 投递失败标记 failed 并返回 503；质量闸门全绿（ruff/mypy/pytest）
+- 验证：已在 WSL2 Ubuntu（docker redis:7 容器）完成真实 broker 端到端验证——uvicorn 上传 → Celery 投递 → 独立 worker 进程消费 → running/succeeded → 下载 JPEG（魔数 ff d8 ff 正确）
+- 真实验证暴露并修复 3 处问题：① celery_app 缺 `include=["app.workers.convert_task"]`（worker 不注册任务，消息积压不执行）；② pillow / python-multipart 未在 pyproject 声明（本地靠 venv 遗留，CI 全新安装必失败）；③ tests/conftest.py 在设 env 前 import app（config 固化为默认值，测试污染真实 data/app.db）
 
 ## 已固化决策
 
@@ -20,5 +22,5 @@
 
 ## 下一步
 
-1. 切片 3：SQLite + SQLAlchemy/Alembic 落库（User/QuotaUsage/ConversionTask）替换内存 TaskStore，并引入 Celery + Redis 异步队列（替换进程内线程）
-2. 切片 4：更多格式与本地 Wasm 转换引擎
+1. 切片 4：更多格式与本地 Wasm 转换引擎
+2. docker-compose 部署切片：含 sweeper 定时清扫（超时未下载的临时文件与过期记录）
