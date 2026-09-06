@@ -1,13 +1,17 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState, type ChangeEvent, type DragEvent } from "react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
+
+const ACCEPT_EXT = ".png";
+const ACCEPT_MIME = "image/png";
 
 const COPY = {
   title: "文件格式转换",
   subtitle: "切片 1：PNG → JPG（服务端转换演示）",
   pick: "选择 PNG 文件",
+  dropHint: "拖拽 PNG 文件到此处，或点击选择",
   convert: "开始转换",
   converting: "转换中…",
   done: "转换完成，点击下载：",
@@ -41,7 +45,8 @@ export default function Home() {
   const [message, setMessage] = useState("");
   const [downloadUrl, setDownloadUrl] = useState("");
   const [downloadName, setDownloadName] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [pickError, setPickError] = useState("");
+  const [dragging, setDragging] = useState(false);
 
   async function handleConvert() {
     if (!file) return;
@@ -74,12 +79,38 @@ export default function Home() {
     }
   }
 
-  function reset() {
-    setFile(null);
+  function applyPickedFile(picked: File | null) {
+    if (!picked) {
+      setFile(null);
+      setPhase("idle");
+      setMessage("");
+      setDownloadUrl("");
+      setPickError("");
+      return;
+    }
+    const name = picked.name.toLowerCase();
+    const ok = name.endsWith(ACCEPT_EXT) || picked.type === ACCEPT_MIME;
+    if (!ok) {
+      setFile(null);
+      setPickError(`仅支持 PNG 文件（${ACCEPT_EXT}），收到：${picked.name}`);
+      return;
+    }
+    setFile(picked);
+    setPickError("");
     setPhase("idle");
     setMessage("");
     setDownloadUrl("");
-    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  function handlePick(e: ChangeEvent<HTMLInputElement>) {
+    applyPickedFile(e.target.files?.[0] ?? null);
+  }
+
+  function handleDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragging(false);
+    if (busy) return;
+    applyPickedFile(e.dataTransfer.files?.[0] ?? null);
   }
 
   const busy = phase === "converting";
@@ -98,17 +129,41 @@ export default function Home() {
       <h1 style={{ fontSize: 24, margin: 0 }}>{COPY.title}</h1>
       <p style={{ color: "#6b7280" }}>{COPY.subtitle}</p>
 
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/png,.png"
-        onChange={(e) => {
-          reset();
-          setFile(e.target.files?.[0] ?? null);
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!busy) setDragging(true);
         }}
-        disabled={busy}
-        style={{ display: "block", margin: "24px 0 8px" }}
-      />
+        onDragLeave={() => setDragging(false)}
+        onDrop={handleDrop}
+        style={{
+          margin: "24px 0 8px",
+          padding: 16,
+          border: dragging ? "2px dashed #2563eb" : "2px dashed #d1d5db",
+          borderRadius: 8,
+          background: dragging ? "#eff6ff" : "#f9fafb",
+          textAlign: "center",
+        }}
+      >
+        <input
+          type="file"
+          accept={`${ACCEPT_MIME},${ACCEPT_EXT}`}
+          onChange={handlePick}
+          disabled={busy}
+          style={{ display: "block", margin: "0 auto" }}
+        />
+        <p style={{ fontSize: 12, color: "#9ca3af", margin: "8px 0 0" }}>
+          {COPY.dropHint}
+        </p>
+      </div>
+      {file && (
+        <p style={{ fontSize: 14, margin: "0 0 8px", color: "#111827" }}>
+          已选：{file.name}
+        </p>
+      )}
+      {pickError && (
+        <p style={{ margin: "0 0 8px", color: "#dc2626" }}>{pickError}</p>
+      )}
       <p style={{ fontSize: 12, color: "#9ca3af" }}>{COPY.limitHint}</p>
 
       <button
