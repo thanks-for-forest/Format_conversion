@@ -1,0 +1,2 @@
+# 统一换行符为 LF，与 .editorconfig 及 Linux CI 保持一致
+* text=auto eol=lf
