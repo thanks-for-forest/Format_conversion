@@ -4,8 +4,8 @@
 
 ## 当前阶段
 
-- 阶段：**实现阶段（端到端切片 1 完成）**
-- 状态：切片 1 已跑通——Next.js 页面 → FastAPI 上传 → Pillow PNG→JPG → pass_key 下载（下载即删）；质量闸门全绿（ruff/mypy/pytest/tsc/eslint）
+- 阶段：**实现阶段（切片 2 完成）**
+- 状态：切片 2 已跑通——任务状态机 pending→queued→running→succeeded/failed + 进程内后台线程异步化；上传秒回 queued，前端轮询到终态后下载；质量闸门全绿（ruff/mypy/pytest/tsc/eslint/build）
 
 ## 已固化决策
 
@@ -20,6 +20,5 @@
 
 ## 下一步
 
-1. 切片 2：任务状态机 + Celery/Redis 异步化（pending→queued→running→succeeded/failed）
-2. 切片 3：SQLite + SQLAlchemy/Alembic 落库（User/QuotaUsage/ConversionTask），替换内存 TaskStore
-3. 切片 4：更多格式与本地 Wasm 转换引擎
+1. 切片 3：SQLite + SQLAlchemy/Alembic 落库（User/QuotaUsage/ConversionTask）替换内存 TaskStore，并引入 Celery + Redis 异步队列（替换进程内线程）
+2. 切片 4：更多格式与本地 Wasm 转换引擎

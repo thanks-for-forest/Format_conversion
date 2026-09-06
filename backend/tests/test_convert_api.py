@@ -1,6 +1,7 @@
 """转换接口端到端测试：上传 → 状态 → 下载（含魔数/超限/pass_key 拦截）。"""
 
 import io
+import time
 from pathlib import Path
 
 import pytest
@@ -20,6 +21,20 @@ def _png_bytes(color: str = "red", size: tuple[int, int] = (8, 8)) -> bytes:
     return buf.getvalue()
 
 
+def _wait_done(
+    client: TestClient, task_id: str, pass_key: str, timeout: float = 5.0
+) -> dict:
+    """轮询任务直到终态，超时则失败。"""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        info = client.get(f"/api/tasks/{task_id}", params={"pass_key": pass_key})
+        data = info.json()["data"]
+        if data["status"] in ("succeeded", "failed"):
+            return data
+        time.sleep(0.05)
+    raise AssertionError("任务未在时限内完成")
+
+
 def test_convert_e2e(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """上传 PNG → 任务 succeeded → 下载得到 JPEG，且下载即删。"""
     monkeypatch.setattr(config, "TMP_DIR", tmp_path)
@@ -32,12 +47,12 @@ def test_convert_e2e(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     body = resp.json()
     assert body["code"] == 0
     data = body["data"]
-    assert data["status"] == "succeeded"
-    assert data["out_size"] and data["out_size"] > 0
+    assert data["status"] == "queued"
 
     task_id, pass_key = data["task_id"], data["pass_key"]
-    info = client.get(f"/api/tasks/{task_id}", params={"pass_key": pass_key})
-    assert info.json()["data"]["status"] == "succeeded"
+    info = _wait_done(client, task_id, pass_key)
+    assert info["status"] == "succeeded"
+    assert info["out_size"] and info["out_size"] > 0
 
     dl = client.get(f"/api/tasks/{task_id}/download", params={"pass_key": pass_key})
     assert dl.status_code == 200

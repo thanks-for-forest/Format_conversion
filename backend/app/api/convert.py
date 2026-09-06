@@ -14,8 +14,8 @@ from starlette.responses import FileResponse
 from app.core import config
 from app.core.errors import ApiError
 from app.core.responses import ok
-from app.services import convert_service
 from app.services.task_store import STORE, Task
+from app.services.worker import submit
 
 router = APIRouter(prefix="/api", tags=["convert"])
 
@@ -54,30 +54,6 @@ def _save_upload(file: UploadFile, task_id: str) -> tuple[Path, int]:
     return path, size
 
 
-def _finish_conversion(task: Task, in_path: Path, in_size: int) -> dict[str, object]:
-    """执行转换并更新任务终态。"""
-    task.in_size = in_size
-    task.in_path = in_path
-    out_path = config.TMP_DIR / f"{task.id}.{task.target_ext}"
-    try:
-        convert_service.png_to_jpg(in_path, out_path)
-    except ApiError as exc:
-        in_path.unlink(missing_ok=True)
-        STORE.mark_failed(
-            task, exc.detail if isinstance(exc.detail, str) else "转换失败"
-        )
-        raise
-    STORE.mark_succeeded(task, out_path.stat().st_size)
-    task.out_path = out_path
-    return {
-        "task_id": task.id,
-        "pass_key": task.pass_key,
-        "status": task.status,
-        "in_size": task.in_size,
-        "out_size": task.out_size,
-    }
-
-
 def _cleanup_task_files(task_id: str) -> None:
     """下载完成后删除临时文件（处理完即删）。"""
     task = STORE.get(task_id)
@@ -101,18 +77,22 @@ def _load_task(task_id: str, pass_key: str) -> Task:
 def create_conversion(
     file: Annotated[UploadFile, File()], target: Annotated[str, Form()] = "jpg"
 ) -> dict[str, object]:
-    """上传 PNG 并同步转换为 JPG，返回任务凭证。"""
+    """上传 PNG 后异步转换为 JPG，立即返回任务凭证（queued）。"""
     _validate_request(file, target)
     task = STORE.create(source_name=file.filename or "upload.png", target_ext="jpg")
     in_path, in_size = _save_upload(file, task.id)
-    try:
-        data = _finish_conversion(task, in_path, in_size)
-    except ApiError:
-        raise
-    except Exception as exc:  # noqa: BLE001
-        STORE.mark_failed(task, "转换失败，请重试")
-        raise ApiError(500, "转换失败，请重试") from exc
-    return ok(data)
+    task.in_path = in_path
+    task.in_size = in_size
+    task.out_path = config.TMP_DIR / f"{task.id}.{task.target_ext}"
+    submit(task)
+    return ok(
+        {
+            "task_id": task.id,
+            "pass_key": task.pass_key,
+            "status": task.status,
+            "in_size": task.in_size,
+        }
+    )
 
 
 @router.get("/tasks/{task_id}")

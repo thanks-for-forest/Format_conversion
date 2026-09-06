@@ -14,7 +14,7 @@ class Task:
 
     id: str
     pass_key: str
-    status: str  # running | succeeded | failed
+    status: str  # pending | queued | running | succeeded | failed
     message: str
     source_name: str
     target_ext: str
@@ -52,8 +52,8 @@ class TaskStore:
         task = Task(
             id=uuid.uuid4().hex,
             pass_key=uuid.uuid4().hex,
-            status="running",
-            message="转换中",
+            status="pending",
+            message="等待处理",
             source_name=source_name,
             target_ext=target_ext,
             in_size=0,
@@ -67,6 +67,16 @@ class TaskStore:
     def get(self, task_id: str) -> Task | None:
         with self._lock:
             return self._tasks.get(task_id)
+
+    def mark_queued(self, task: Task) -> None:
+        with self._lock:
+            task.status = "queued"
+            task.message = "已排队"
+
+    def mark_running(self, task: Task) -> None:
+        with self._lock:
+            task.status = "running"
+            task.message = "转换中"
 
     def mark_failed(self, task: Task, message: str) -> None:
         with self._lock:

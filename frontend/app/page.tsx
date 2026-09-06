@@ -9,7 +9,7 @@ const ACCEPT_MIME = "image/png";
 
 const COPY = {
   title: "文件格式转换",
-  subtitle: "切片 1：PNG → JPG（服务端转换演示）",
+  subtitle: "切片 2：PNG → JPG（服务端异步转换）",
   pick: "选择 PNG 文件",
   dropHint: "拖拽 PNG 文件到此处，或点击选择",
   convert: "开始转换",
@@ -20,21 +20,49 @@ const COPY = {
   limitHint: "匿名上限 50MB，仅支持 .png 扩展名",
 } as const;
 
-interface ConvertOk {
+interface CreateResult {
   task_id: string;
   pass_key: string;
   status: string;
-  out_size: number | null;
+  in_size: number;
 }
 
-interface Envelope {
+interface TaskInfo {
+  task_id: string;
+  status: string;
+  message: string;
+  source_name: string;
+  target_ext: string;
+  in_size: number;
+  out_size: number | null;
+  files_removed: boolean;
+}
+
+interface Envelope<T> {
   code: number;
-  data: ConvertOk | null;
+  data: T | null;
   message: string;
 }
 
 function toJpgName(name: string): string {
   return `${name.slice(0, -4)}.jpg`;
+}
+
+async function pollUntilDone(taskId: string, passKey: string): Promise<TaskInfo> {
+  for (;;) {
+    const resp = await fetch(
+      `${API_BASE}/api/tasks/${taskId}?pass_key=${passKey}`
+    );
+    const body = (await resp.json()) as Envelope<TaskInfo>;
+    if (body.code !== 0 || !body.data) {
+      throw new Error(body.message || `HTTP ${resp.status}`);
+    }
+    const data = body.data;
+    if (data.status === "succeeded" || data.status === "failed") {
+      return data;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 800));
+  }
 }
 
 export default function Home() {
@@ -60,13 +88,14 @@ export default function Home() {
         method: "POST",
         body: form,
       });
-      const body = (await resp.json()) as Envelope;
+      const body = (await resp.json()) as Envelope<CreateResult>;
       if (body.code !== 0 || !body.data) {
         throw new Error(body.message || `HTTP ${resp.status}`);
       }
-      const { task_id, pass_key, status } = body.data;
-      if (status !== "succeeded") {
-        throw new Error(`任务状态异常：${status}`);
+      const { task_id, pass_key } = body.data;
+      const info = await pollUntilDone(task_id, pass_key);
+      if (info.status !== "succeeded") {
+        throw new Error(info.message || "转换失败");
       }
       setDownloadUrl(
         `${API_BASE}/api/tasks/${task_id}/download?pass_key=${pass_key}`

@@ -1,6 +1,6 @@
 # 架构草案（ARCH）
 
-> 版本：v0.3　关联 PRD v0.3　更新日期：2026-09-06
+> 版本：v0.4　关联 PRD v0.3　更新日期：2026-09-06
 
 ## 1. 技术栈（定稿）
 
@@ -178,3 +178,4 @@ rejected(审核/配额拦截)  ←─ 上传
 | v0.1 | SQLite + Celery/Redis + Docker Compose + Next.js | 轻量起步可验证；Celery 隔离长任务；Next.js 满足 SEO SSR；SQLite 可平滑迁 PostgreSQL |
 | v0.2 | 加 Nginx、鉴权/状态机/API/安全隔离/CI | 大文件经 Next.js 代理是坑；安全与质量闸门未落地 |
 | v0.3 | 加匿名 pass_key、兜底清扫、fail-closed、配额口径、WAL、流式落盘、SVG 消毒、LibreOffice profile | 二审修正数据正确性与应用安全细节 |
+| v0.4 | 切片2 以进程内后台线程实现异步队列（5 态状态机），Celery+Redis+SQLite 合并延后到切片3 | Celery worker 是独立进程，无法读写 API 进程内存 TaskStore；先落库再上 Celery 才能保证状态跨进程一致 |
