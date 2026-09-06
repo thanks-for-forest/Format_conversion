@@ -4,8 +4,8 @@
 
 ## 当前阶段
 
-- 阶段：**实现阶段（初始化切片完成）**
-- 状态：PRD v0.3.1 / ARCH v0.3 / CONVENTIONS v0.4 定稿；仓库已初始化（main），质量闸门与 CI 就绪
+- 阶段：**实现阶段（端到端切片 1 完成）**
+- 状态：切片 1 已跑通——Next.js 页面 → FastAPI 上传 → Pillow PNG→JPG → pass_key 下载（下载即删）；质量闸门全绿（ruff/mypy/pytest/tsc/eslint）
 
 ## 已固化决策
 
@@ -20,4 +20,6 @@
 
 ## 下一步
 
-1. 实现第一个端到端切片：页面打开 → 上传 → 服务端转换 → 下载
+1. 切片 2：任务状态机 + Celery/Redis 异步化（pending→queued→running→succeeded/failed）
+2. 切片 3：SQLite + SQLAlchemy/Alembic 落库（User/QuotaUsage/ConversionTask），替换内存 TaskStore
+3. 切片 4：更多格式与本地 Wasm 转换引擎
