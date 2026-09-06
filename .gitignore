@@ -19,6 +19,7 @@ build/
 dist/
 *.tsbuildinfo
 next-env.d.ts
+.pnpm-store/
 
 # 环境与密钥
 .env
