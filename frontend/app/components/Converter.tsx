@@ -38,6 +38,10 @@ const COPY = {
     limitHint:
       "支持 doc / docx / xls / xlsx / ppt / pptx / odt / ods / odp / html / csv / txt / md",
   },
+  audio: {
+    dropHint: "拖拽音频到此处，或点击选择",
+    limitHint: "支持 mp3 / wav / flac / aac / ogg / m4a",
+  },
 } as const;
 
 export default function Converter({

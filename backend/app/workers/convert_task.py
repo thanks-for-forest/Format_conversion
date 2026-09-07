@@ -1,10 +1,11 @@
-"""Celery 转换任务（切片 3b：替换进程内线程 worker；切片 10a：按目标格式路由）。"""
+"""Celery 转换任务（切片 3b：替换进程内线程 worker；切片 10a/10b：按目标格式路由）。"""
 
 from celery.utils.log import get_task_logger
 
+from app.core.audio_formats import AUDIO_OUTPUT_FORMATS
 from app.core.doc_formats import DOC_OUTPUT_FORMATS
 from app.core.errors import ApiError
-from app.services import convert_service, doc_service
+from app.services import audio_service, convert_service, doc_service
 from app.services.task_store import STORE
 from app.workers.celery_app import celery_app
 
@@ -24,6 +25,8 @@ def run_conversion(task_id: str) -> None:
             doc_service.convert_document(
                 task.in_path, task.out_path, task.target_format
             )
+        elif task.target_format in AUDIO_OUTPUT_FORMATS:
+            audio_service.convert_audio(task.in_path, task.out_path, task.target_format)
         else:
             convert_service.convert_image(
                 task.in_path, task.out_path, task.target_format

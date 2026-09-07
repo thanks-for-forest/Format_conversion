@@ -32,12 +32,13 @@ jobs:
       - name: 安装依赖
         run: pip install -e ".[dev]"
 
-      # 文档转换测试（切片 10a）需要真实 soffice；本地未装时对应用例自动跳过
-      - name: 安装 LibreOffice
+      # 文档/音频转换测试（切片 10a/10b）需要真实 soffice/ffmpeg；
+      # 本机未装时对应用例自动跳过
+      - name: 安装 LibreOffice 与 ffmpeg
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            libreoffice-writer libreoffice-calc libreoffice-impress
+            libreoffice-writer libreoffice-calc libreoffice-impress ffmpeg
 
       - name: Ruff Lint
         run: ruff check .

@@ -4,10 +4,11 @@
 
 ## 当前阶段
 
-- 阶段：**实现阶段（切片 10a 完成：文档 → PDF + MD → HTML）**
-- 状态：切片 10a 已跑通——后端文档注册表（12 进 1 出，魔数/UTF-8 双校验）+ soffice 子进程转换服务（独立 profile 禁宏禁外链、硬超时、以输出文件存在为成功判据）+ `/api/convert` 双类别路由；前端 category 感知 Converter + 本地 MD→HTML 渲染器 + 13 个新落地页（sitemap 16→29 条）+ 首页目标下拉按类别自适应；CI/Dockerfile 装 LibreOffice + 中文字体
-- 质量闸门：ruff/mypy/pytest 65 全过/eslint/next build 全绿
-- 浏览器验证：docx-to-pdf 与 md-to-html 落地页渲染、md→html 本地转换（blob 下载 + 计次）、**docx→PDF 服务端端到端**（上传→Celery worker→下载 %PDF 389KB→计次 0→1）、配额耗尽禁用+红字提示、首页 docx→PDF 下拉自适应、sitemap 29 条；过程中发现并修复「转义优先致 blockquote 失配」bug
+- 阶段：**实现阶段（切片 10b 完成：音频互转，服务端 ffmpeg）**
+- 状态：切片 10b 已跑通——后端音频注册表（mp3/wav/flac/aac/ogg/m4a 互转，魔数：ID3/MPEG 帧、RIFF+WAVE、fLaC、OggS、ftyp、ADTS）+ ffmpeg 子进程转换（-nostdin/-vn/按目标选编码器/硬超时/输出存在判成功；find_ffmpeg 含 winget 包目录 glob 兜底）+ worker/api 三类别路由（音频/文档/图片）；前端 30 个音频互转落地页（组合页 25→55，sitemap 59 条）+ 首页音频目标下拉；CI/Dockerfile 装 ffmpeg
+- 质量闸门：ruff/mypy/pytest（+9 音频全过，含真转）/eslint/next build（55 组合页预渲染）全绿
+- 浏览器验证：mp3-to-wav 落地页渲染与 60 条互链、mp3→wav 真转换端到端（worker 0.39s 成功 + sample-song.wav 下载 + 计次 0→1）
+- 本片修复/教训：改后端代码后运行中的 uvicorn/worker 必须重启（E2E 撞 400 老文案）；winget portable 包 PATH/Links 未生效，find_ffmpeg 加 Packages 目录 glob 兜底
 
 ## 安全审计（2026-09-07，standard 模式，10/10 维度覆盖）
 
@@ -37,7 +38,7 @@
 
 ## 下一步
 
-1. 切片 10b：音视频类别（ffmpeg.wasm 本地 + ffmpeg 服务端；互转/提取音轨/压缩）
+1. 切片 10c：视频互转 + 提取音轨（服务端 ffmpeg，CPU 重需独立超时/进度策略）；或 ffmpeg.wasm 本地小文件音频转换（需评估 CDN 依赖与跨域隔离头）
 2. 域名与上线：购买域名 → DNS 解析 → 服务器部署 compose 栈（SITE_ADDRESS 设域名走 Caddy 自动 HTTPS）
 
 ## 部署（Docker Compose，切片 7）

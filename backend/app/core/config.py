@@ -52,6 +52,10 @@ SWEEP_ROW_RETENTION_DAYS = int(os.getenv("SWEEP_ROW_RETENTION_DAYS", "7"))
 SOFFICE_PATH = os.getenv("SOFFICE_PATH", "")  # 留空自动探测 PATH 与常见安装位置
 SOFFICE_TIMEOUT_SEC = int(os.getenv("SOFFICE_TIMEOUT_SEC", "120"))
 
+# ===== 音视频转换（切片 10b：ffmpeg 服务端） =====
+FFMPEG_PATH = os.getenv("FFMPEG_PATH", "")  # 留空自动探测 PATH 与常见安装位置
+FFMPEG_TIMEOUT_SEC = int(os.getenv("FFMPEG_TIMEOUT_SEC", "300"))
+
 TMP_DIR.mkdir(parents=True, exist_ok=True)
 
 # 生产环境兜底（审计 L1）：弱默认密钥直接拒绝启动，防止公开默认值伪造 JWT
