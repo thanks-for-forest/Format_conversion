@@ -8,6 +8,7 @@ import {
   type TaskInfo,
 } from "./lib/api";
 import { canConvertLocally, convertLocally } from "./lib/convert";
+import AuthBar from "./components/AuthBar";
 
 const SOURCE_EXTS = ["png", "jpg", "jpeg", "webp", "bmp", "gif"];
 const TARGET_EXTS = ["png", "jpg", "webp"];
@@ -138,6 +139,7 @@ export default function Home() {
         fontFamily: "sans-serif",
       }}
     >
+      <AuthBar />
       <h1 style={{ fontSize: 24, margin: 0 }}>文件格式转换</h1>
       <p style={{ color: "#6b7280" }}>{COPY.subtitle}</p>
 

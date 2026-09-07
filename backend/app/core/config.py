@@ -13,4 +13,18 @@ CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "0") == "1"
 MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", str(50 * 1024 * 1024)))
 FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:3000")
 
+# ===== 认证（切片 5a） =====
+ENV = os.getenv("ENV", "development")
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-insecure-secret-change-me")
+JWT_ACCESS_TTL_MIN = int(os.getenv("JWT_ACCESS_TTL_MIN", "15"))
+JWT_REFRESH_TTL_DAYS = int(os.getenv("JWT_REFRESH_TTL_DAYS", "7"))
+CODE_TTL_SEC = int(os.getenv("CODE_TTL_SEC", "300"))
+CODE_SEND_COOLDOWN_SEC = int(os.getenv("CODE_SEND_COOLDOWN_SEC", "60"))
+CODE_MAX_ATTEMPTS = int(os.getenv("CODE_MAX_ATTEMPTS", "5"))
+SMTP_HOST = os.getenv("SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+MAIL_FROM = os.getenv("MAIL_FROM", "noreply@example.com")
+
 TMP_DIR.mkdir(parents=True, exist_ok=True)

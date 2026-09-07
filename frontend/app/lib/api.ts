@@ -59,3 +59,46 @@ export async function pollUntilDone(taskId: string, passKey: string): Promise<Ta
 export function buildDownloadUrl(taskId: string, passKey: string): string {
   return `${API_BASE}/api/tasks/${taskId}/download?pass_key=${passKey}`;
 }
+
+// ===== 认证（切片 5a）：跨源 API，Cookie 需显式 credentials =====
+
+export interface AuthUser {
+  id: string;
+  email: string;
+}
+
+export async function sendCode(email: string): Promise<void> {
+  const resp = await fetch(`${API_BASE}/api/auth/send-code`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ email }),
+  });
+  await unwrap<{ sent: boolean }>(resp, (b) => b as Envelope<{ sent: boolean }>);
+}
+
+export async function verifyCode(email: string, code: string): Promise<AuthUser> {
+  const resp = await fetch(`${API_BASE}/api/auth/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ email, code }),
+  });
+  const data = await unwrap<{ user: AuthUser }>(resp, (b) => b as Envelope<{ user: AuthUser }>);
+  return data.user;
+}
+
+export async function fetchMe(): Promise<AuthUser | null> {
+  const resp = await fetch(`${API_BASE}/api/auth/me`, { credentials: "include" });
+  if (resp.status === 401) return null;
+  const data = await unwrap<{ user: AuthUser }>(resp, (b) => b as Envelope<{ user: AuthUser }>);
+  return data.user;
+}
+
+export async function logout(): Promise<void> {
+  const resp = await fetch(`${API_BASE}/api/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
+  await unwrap<{ logged_out: boolean }>(resp, (b) => b as Envelope<{ logged_out: boolean }>);
+}

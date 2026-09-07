@@ -1,14 +1,21 @@
 """FastAPI 应用入口：路由挂载、CORS、统一响应信封。"""
 
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api import convert
+from app.api import auth, convert
 from app.core import config
 from app.core.responses import fail
+
+# 应用日志可见（含开发假发送的验证码日志）
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s"
+)
 
 app = FastAPI(title="Format Conversion API")
 
@@ -20,6 +27,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(convert.router)
+app.include_router(auth.router)
 
 
 @app.get("/health")
