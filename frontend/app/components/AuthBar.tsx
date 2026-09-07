@@ -28,6 +28,10 @@ export default function AuthBar({
     return (
       <p style={barStyle}>
         未登录 · {quotaText} ·{" "}
+        <Link href="/account" style={linkStyle}>
+          配额
+        </Link>{" "}
+        ·{" "}
         <Link href="/login" style={linkStyle}>
           邮箱验证码登录
         </Link>
@@ -36,7 +40,11 @@ export default function AuthBar({
   }
   return (
     <p style={barStyle}>
-      已登录：{user.email} · {quotaText} ·{" "}
+      已登录：
+      <Link href="/account" style={linkStyle}>
+        {user.email}
+      </Link>{" "}
+      · {quotaText} ·{" "}
       <button
         onClick={onLogout}
         style={{
