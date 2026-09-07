@@ -1,6 +1,6 @@
 # 架构草案（ARCH）
 
-> 版本：v0.8　关联 PRD v0.3　更新日期：2026-09-07
+> 版本：v0.11　关联 PRD v0.3　更新日期：2026-09-07
 
 ## 1. 技术栈（定稿）
 
@@ -190,3 +190,4 @@ rejected(审核/配额拦截)  ←─ 上传
 | v0.9 | 切片5a：邮箱验证码登录。users 表（0002 迁移）+ `core/security.py`（PyJWT access 15min/refresh 7d，httpOnly+SameSite=Lax Cookie）+ `services/code_store.py`（Redis：验证码 TTL 5min、发送冷却 60s、错误 5 次作废防爆破）+ `services/mailer.py`（开发假发送进日志，生产 smtplib）+ `/api/auth/*` 五端点；前端登录页 + AuthBar 登录态条；CI 后端 job 加 redis service。浏览器验证全链路（未登录→发码→验码→已登录→退出） | 按用户决策坚持 Redis（与 ARCH/生产同构，CI 用 service 容器）；验证码即注册免密码管理；本机教训：WSL 空闲自动关机导致转发「抖动」，需常驻进程占住 VM；WSL grafana 占 3000 端口与 next dev 冲突，可用 PORT=3100 避让 |
 | v0.9.1 | 接入真实发信（163 SMTP 授权码）：mailer 按端口自动 SSL(465)/STARTTLS；**发信开关与 ENV 解耦**（配了 SMTP_HOST 即真发，否则假发送）——避免本地为真发切 production 触发 secure-cookie 断掉 HTTP 登录；config 自动加载根目录 `.env`（python-dotenv，不进仓库）；conftest 强制清空 SMTP_HOST 保证测试永不真发 | 163/阿里云推荐 465 SSL 而 STARTTLS 代码连不上；ENV 耦合使本地真发自测不可行；.env 配置后测试会真发邮件（防滥用底线） |
 | v0.10 | 切片5b：每日配额。`services/quota.py` 分层配额（登录档走 SQLite quota_usage 日表 + ON CONFLICT 原子累加；匿名档走 Redis `fc:quota:{yyyymmdd}:{ip}` 键含日期当日过期、支持 X-Forwarded-For）；429 文案带 UTC 重置倒计时；`/api/convert` 接入分层单文件限额（匿名 50MB/登录 200MB）与配额预检扣减（413/415 预检不落盘不计次，配额不过不落盘）；`/api/quota/summary|local-count` 两端点；本地转换计次不计流量（前端成功后上报）；前端 useQuota 会话态 hook + AuthBar 配额展示 + QuotaHints 超额提示（预检禁用按钮）与后端 429 双保险。浏览器验证闭环：0/5 → 本地转 1/5 → 连转 5/5 → 红字提示 + 按钮禁用。修复：SQLite 下 `BIGINT PRIMARY KEY` 不作 rowid 别名致自增失败（`BigInteger().with_variant(Integer,"sqlite")`）；同文件并行编辑互相覆盖（改串行）；.env FRONTEND_ORIGIN 与实际前端端口不一致被 CORS 拦截（服务端仍记 200，易误判为前端 bug） | 兑现 PRD 3.4 配额口径；预检 + 429 双保险按用户决策；本地计次不计流量因服务端无流量成本；共享 Redis 客户端抽 `services/redis_client.py` 供 code_store/quota 复用 |
+| v0.11 | 切片6a：SEO 落地页 `/convert/[a-to-b]`。`lib/formats.ts` 前端格式单一来源（五进三出 12 组合 + jpeg 别名 + parseCombo）；`generateStaticParams` 预渲染 12 页 + `dynamicParams=false`（非法 slug 直接 404）；`generateMetadata` 按组合生成标题/描述；页面含介绍、转换步骤、其余 11 组合互链（内链 SEO）。组件重构：转换逻辑从 page.tsx 抽出为 `components/Converter.tsx`（支持 lockedSource/lockedTarget 锁定格式：隐藏目标下拉、仅收该来源、提示「本页仅支持 X」）；`components/SiteFrame.tsx` 客户端骨架持有 useQuota 单实例并传 AuthBar/Converter，页面只传可序列化 JSX（heading/below） | 兑现 PRD SEO 引流核心：每组合一页静态 HTML 利于收录；跨服务端/客户端边界不能传函数（render-prop 首选方案 build 失败），改为骨架组件直持 Converter；useQuota 必须单实例否则 AuthBar 与转换器配额状态脱节（5b 教训的泛化） |
