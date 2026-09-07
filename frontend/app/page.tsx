@@ -104,6 +104,7 @@ export default function Home() {
     const ext = sourceExtOf(picked.name);
     if (!SOURCE_EXTS.includes(ext)) {
       setFile(null);
+      resetResult();
       setPickError(`仅支持 ${SOURCE_EXTS.join(" / ")}，收到：${picked.name}`);
       return;
     }
