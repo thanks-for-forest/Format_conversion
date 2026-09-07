@@ -4,25 +4,27 @@ import { useState, type ChangeEvent, type DragEvent } from "react";
 import {
   buildDownloadUrl,
   createConversion,
+  logout,
   pollUntilDone,
+  reportLocalCount,
   type TaskInfo,
 } from "./lib/api";
 import { canConvertLocally, convertLocally } from "./lib/convert";
+import { useQuota } from "./lib/useQuota";
 import AuthBar from "./components/AuthBar";
+import ConvertResult from "./components/ConvertResult";
+import QuotaHints from "./components/QuotaHints";
 
 const SOURCE_EXTS = ["png", "jpg", "jpeg", "webp", "bmp", "gif"];
 const TARGET_EXTS = ["png", "jpg", "webp"];
 
 const COPY = {
-  title: "文件格式转换",
-  subtitle: "切片 4a：图片互转（png / jpg / webp / bmp / gif → png / jpg / webp）",
+  subtitle: "本地优先 · 图片互转（png / jpg / webp / bmp / gif → png / jpg / webp）",
   dropHint: "拖拽图片到此处，或点击选择",
   targetLabel: "转换为：",
   convert: "开始转换",
   converting: "转换中…",
-  done: "转换完成，点击下载：",
-  errorPrefix: "出错了：",
-  limitHint: "匿名上限 50MB，支持 png / jpg / jpeg / webp / bmp / gif",
+  limitHint: "支持 png / jpg / jpeg / webp / bmp / gif",
 } as const;
 
 function sourceExtOf(name: string): string {
@@ -47,10 +49,18 @@ export default function Home() {
   const [pickError, setPickError] = useState("");
   const [dragging, setDragging] = useState(false);
   const [pathUsed, setPathUsed] = useState<"local" | "server" | null>(null);
+  const { user, setUser, quota, reloadQuota } = useQuota();
+
+  const handleLogout = () =>
+    logout().then(() => setUser(null)).finally(reloadQuota); // 退出后回到匿名档
 
   const busy = phase === "converting";
   const sourceExt = file ? sourceExtOf(file.name) : "";
   const targetOptions = TARGET_EXTS.filter((t) => t !== sourceExt);
+  // 预检（双保险之一，后端 429 兜底）：次数用尽或文件超单文件上限时禁用
+  const quotaExhausted = !!quota && quota.used.count >= quota.limit.count;
+  const oversize = !!file && !!quota && file.size > quota.limit.max_upload_bytes;
+  const blocked = quotaExhausted || oversize;
 
   async function handleConvert() {
     if (!file) return;
@@ -65,6 +75,9 @@ export default function Home() {
           setDownloadUrl(URL.createObjectURL(blob));
           setDownloadName(outputName(file.name, target));
           setPhase("done");
+          reportLocalCount()
+            .then(reloadQuota) // 本地计次不计流量，失败不影响结果
+            .catch(() => {});
           return;
         } catch {
           setPathUsed(null);
@@ -79,6 +92,7 @@ export default function Home() {
       setDownloadUrl(buildDownloadUrl(created.task_id, created.pass_key));
       setDownloadName(outputName(file.name, target));
       setPhase("done");
+      reloadQuota();
     } catch (err) {
       setMessage(err instanceof Error ? err.message : String(err));
       setPhase("error");
@@ -139,7 +153,7 @@ export default function Home() {
         fontFamily: "sans-serif",
       }}
     >
-      <AuthBar />
+      <AuthBar user={user} quota={quota} onLogout={handleLogout} />
       <h1 style={{ fontSize: 24, margin: 0 }}>文件格式转换</h1>
       <p style={{ color: "#6b7280" }}>{COPY.subtitle}</p>
 
@@ -207,43 +221,29 @@ export default function Home() {
         </label>
         <button
           onClick={handleConvert}
-          disabled={!file || busy}
+          disabled={!file || busy || blocked}
           style={{
             padding: "10px 24px",
             borderRadius: 8,
             border: "none",
-            background: !file || busy ? "#c7cdd4" : "#2563eb",
+            background: !file || busy || blocked ? "#c7cdd4" : "#2563eb",
             color: "#fff",
-            cursor: !file || busy ? "not-allowed" : "pointer",
+            cursor: !file || busy || blocked ? "not-allowed" : "pointer",
           }}
         >
           {busy ? COPY.converting : COPY.convert}
         </button>
       </div>
 
-      {phase === "done" && (
-        <div style={{ marginTop: 24 }}>
-          <p style={{ color: "#059669" }}>{COPY.done}</p>
-          <a
-            href={downloadUrl}
-            download={downloadName}
-            style={{ color: "#2563eb", fontWeight: 600 }}
-          >
-            {downloadName}
-          </a>
-          <p style={{ fontSize: 12, color: "#6b7280", marginTop: 8 }}>
-            转换方式：
-            {pathUsed === "local" ? "本地（文件未上传）" : "服务端"}
-          </p>
-        </div>
-      )}
+      {quota && <QuotaHints quota={quota} oversize={oversize} />}
 
-      {phase === "error" && (
-        <p style={{ marginTop: 24, color: "#dc2626" }}>
-          {COPY.errorPrefix}
-          {message}
-        </p>
-      )}
+      <ConvertResult
+        phase={phase}
+        message={message}
+        downloadUrl={downloadUrl}
+        downloadName={downloadName}
+        pathUsed={pathUsed}
+      />
     </main>
   );
 }

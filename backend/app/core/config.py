@@ -31,4 +31,13 @@ SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 MAIL_FROM = os.getenv("MAIL_FROM", "noreply@example.com")
 
+# ===== 配额（切片 5b，口径见 PRD 3.4） =====
+# 匿名：单文件 ≤50MB、5 次/天、100MB 流量/天；登录：≤200MB、50 次/天、2GB/天
+_MB = 1024 * 1024
+MAX_UPLOAD_BYTES_USER = int(os.getenv("MAX_UPLOAD_BYTES_USER", str(200 * _MB)))
+ANON_DAILY_COUNT = int(os.getenv("ANON_DAILY_COUNT", "5"))
+ANON_DAILY_TRAFFIC_BYTES = int(os.getenv("ANON_DAILY_TRAFFIC_BYTES", str(100 * _MB)))
+USER_DAILY_COUNT = int(os.getenv("USER_DAILY_COUNT", "50"))
+USER_DAILY_TRAFFIC_BYTES = int(os.getenv("USER_DAILY_TRAFFIC_BYTES", str(2048 * _MB)))
+
 TMP_DIR.mkdir(parents=True, exist_ok=True)

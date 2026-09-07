@@ -4,8 +4,9 @@
 
 ## 当前阶段
 
-- 阶段：**实现阶段（切片 5a 完成：邮箱验证码登录）**
-- 状态：切片 5a 已跑通——users 表（0002 迁移）、Redis 验证码存储（TTL/冷却/防爆破）、PyJWT 双令牌 httpOnly Cookie 会话、/api/auth 五端点、前端登录页 + AuthBar；pytest 30 用例全绿；浏览器验证全链路（未登录→发码→验码→已登录→退出）；CI 后端 job 加 redis service
+- 阶段：**实现阶段（切片 5b 完成：每日配额闭环）**
+- 状态：切片 5b 已跑通——quota_usage 表（0003 迁移）、`services/quota.py` 分层配额（登录 SQLite 日表 / 匿名 Redis 按 IP）、`/api/convert` 分层单文件限额 + 配额预检扣减（429 带重置时间）、`/api/quota/summary|local-count` 端点、本地转换计次不计流量、前端 useQuota + AuthBar 配额展示 + QuotaHints 超额预检（禁用按钮）；pytest 39 用例全绿；浏览器验证闭环（0/5 → 本地转计次 → 5/5 触发红字提示 + 按钮禁用）
+- 本片修复：SQLite `BIGINT PRIMARY KEY` 非行id别名不自增（用 `BigInteger().with_variant(Integer,"sqlite")`）；`.env` FRONTEND_ORIGIN 与前端实际端口不一致 → CORS 拦截但服务端照记 200（易误判前端 bug）
 - 验证：已在 WSL2 Ubuntu（docker redis:7 容器）完成真实 broker 端到端验证——uvicorn 上传 → Celery 投递 → 独立 worker 进程消费 → running/succeeded → 下载 JPEG（魔数 ff d8 ff 正确）
 - 真实验证暴露并修复 3 处问题：① celery_app 缺 `include=["app.workers.convert_task"]`（worker 不注册任务，消息积压不执行）；② pillow / python-multipart 未在 pyproject 声明（本地靠 venv 遗留，CI 全新安装必失败）；③ tests/conftest.py 在设 env 前 import app（config 固化为默认值，测试污染真实 data/app.db）
 
@@ -22,7 +23,7 @@
 
 ## 下一步
 
-1. 切片 5b：配额（QuotaUsage 落库、服务端强制校验、本地转换计次、我的配额页）
+1. 切片 6a：account 页（我的配额）或 SEO 落地页 convert/[a-to-b]
 2. docker-compose 部署切片：含 sweeper 定时清扫（超时未下载的临时文件与过期记录）
 3. 切片 6+：压缩包（fflate 本地）/ 文档（LibreOffice）/ 音视频（ffmpeg.wasm + 服务端）类别
 

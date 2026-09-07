@@ -18,6 +18,11 @@ os.environ["TMP_DIR"] = str(_TMP_ROOT / "tmp")
 os.environ["SMTP_HOST"] = ""
 # 测试专用 Redis DB（/1），避免清空开发数据；转发不稳时可设 TEST_REDIS_URL 指向 WSL IP
 os.environ["REDIS_URL"] = os.getenv("TEST_REDIS_URL", "redis://localhost:6379/1")
+# 配额基线放开（切片 5b）：转换类测试不撞每日额度，配额专项用例再 monkeypatch 收窄
+os.environ["ANON_DAILY_COUNT"] = "1000000"
+os.environ["ANON_DAILY_TRAFFIC_BYTES"] = str(10**12)
+os.environ["USER_DAILY_COUNT"] = "1000000"
+os.environ["USER_DAILY_TRAFFIC_BYTES"] = str(10**13)
 
 from app.core.database import get_engine, reset_database  # noqa: E402
 from app.models import Base  # noqa: E402

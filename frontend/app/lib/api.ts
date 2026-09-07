@@ -41,6 +41,7 @@ export async function createConversion(file: File, target: string): Promise<Crea
   const resp = await fetch(`${API_BASE}/api/convert`, {
     method: "POST",
     body: form,
+    credentials: "include", // 登录用户需携带 Cookie 以命中更高配额档
   });
   return unwrap<CreateResult>(resp, (b) => b as Envelope<CreateResult>);
 }
@@ -101,4 +102,28 @@ export async function logout(): Promise<void> {
     credentials: "include",
   });
   await unwrap<{ logged_out: boolean }>(resp, (b) => b as Envelope<{ logged_out: boolean }>);
+}
+
+// ===== 配额（切片 5b）：预检摘要与本地计次 =====
+
+export interface QuotaSummary {
+  authenticated: boolean;
+  used: { count: number; traffic_bytes: number };
+  limit: { count: number; traffic_bytes: number; max_upload_bytes: number };
+  reset_at: string;
+}
+
+export async function fetchQuotaSummary(): Promise<QuotaSummary> {
+  const resp = await fetch(`${API_BASE}/api/quota/summary`, {
+    credentials: "include",
+  });
+  return unwrap<QuotaSummary>(resp, (b) => b as Envelope<QuotaSummary>);
+}
+
+export async function reportLocalCount(): Promise<void> {
+  const resp = await fetch(`${API_BASE}/api/quota/local-count`, {
+    method: "POST",
+    credentials: "include",
+  });
+  await unwrap<{ counted: boolean }>(resp, (b) => b as Envelope<{ counted: boolean }>);
 }

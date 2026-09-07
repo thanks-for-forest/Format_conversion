@@ -11,6 +11,7 @@ from typing import Annotated
 from fastapi import APIRouter, Cookie, Response
 from pydantic import BaseModel, EmailStr, Field
 
+from app.api.deps import current_user_id
 from app.core import config, security
 from app.core.database import get_session
 from app.core.errors import ApiError
@@ -120,7 +121,7 @@ def me(
     access_token: Annotated[str | None, Cookie()] = None,
 ) -> dict[str, object]:
     """当前登录用户；未登录 401。"""
-    user_id = _current_user_id(access_token)
+    user_id = current_user_id(access_token)
     if user_id is None:
         raise ApiError(401, "未登录")
     with get_session() as session:

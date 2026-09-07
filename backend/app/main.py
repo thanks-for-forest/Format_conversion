@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api import auth, convert
+from app.api import auth, convert, quota
 from app.core import config
 from app.core.responses import fail
 
@@ -28,6 +28,7 @@ app.add_middleware(
 )
 app.include_router(convert.router)
 app.include_router(auth.router)
+app.include_router(quota.router)
 
 
 @app.get("/health")

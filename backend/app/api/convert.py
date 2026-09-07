@@ -4,6 +4,7 @@
 切片 3a：任务状态经 SQLite 落库，对外 API 契约不变。
 切片 3b：投递 Celery 异步任务。
 切片 4a：表驱动多格式互转（五进三出），扩展名 + 魔数双重校验。
+切片 5b：分层单文件限额与每日配额（匿名 Redis / 登录 SQLite），429 兜底。
 """
 
 import hmac
@@ -11,10 +12,11 @@ import logging
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, Cookie, File, Form, Request, UploadFile
 from starlette.background import BackgroundTask
 from starlette.responses import FileResponse
 
+from app.api.deps import client_ip, current_user_id
 from app.core import config
 from app.core.errors import ApiError
 from app.core.formats import (
@@ -28,6 +30,7 @@ from app.core.formats import (
 )
 from app.core.responses import ok
 from app.models.task import ConversionTask
+from app.services import quota
 from app.services.task_store import STORE
 from app.workers.convert_task import run_conversion
 
@@ -49,12 +52,10 @@ def _validate_request(file: UploadFile, target: str) -> ImageFormat:
     return source
 
 
-def _save_upload(file: UploadFile, task_id: str, source: ImageFormat) -> int:
-    """魔数校验 + 流式落盘（限额内分块写入，超限即拒绝）。"""
-    file.file.seek(0)
-    head = file.file.read(HEAD_LEN)
-    if not source.matches(head):
-        raise ApiError(415, "文件内容与扩展名不符（魔数校验失败）")
+def _save_upload(
+    file: UploadFile, task_id: str, source: ImageFormat, head: bytes, limit: int
+) -> int:
+    """流式落盘（限额内分块写入，超限即拒绝；魔数已在请求阶段预检）。"""
     path = config.TMP_DIR / f"{task_id}.{source.ext}"
     size = len(head)
     try:
@@ -62,7 +63,7 @@ def _save_upload(file: UploadFile, task_id: str, source: ImageFormat) -> int:
             out.write(head)
             while chunk := file.file.read(CHUNK_SIZE):
                 size += len(chunk)
-                if size > config.MAX_UPLOAD_BYTES:
+                if size > limit:
                     raise ApiError(413, "文件超过大小上限")
                 out.write(chunk)
     except ApiError:
@@ -91,17 +92,34 @@ def _load_task(task_id: str, pass_key: str) -> ConversionTask:
 
 @router.post("/convert")
 def create_conversion(
-    file: Annotated[UploadFile, File()], target: Annotated[str, Form()] = "jpg"
+    request: Request,
+    file: Annotated[UploadFile, File()],
+    target: Annotated[str, Form()] = "jpg",
+    access_token: Annotated[str | None, Cookie()] = None,
 ) -> dict[str, object]:
     """上传图片后异步转换，立即返回任务凭证（queued）。"""
+    user_id = current_user_id(access_token)
+    limits = quota.limits_for(user_id)
     source = _validate_request(file, target)
     target_ext = normalize_ext(target)
+    # 单文件限额 + 魔数预检（均不落盘、不计配额）
+    file.file.seek(0, 2)
+    upload_size = file.file.tell()
+    max_mb = limits.max_upload_bytes // (1024 * 1024)
+    if upload_size > limits.max_upload_bytes:
+        raise ApiError(413, f"文件超过大小上限（{max_mb}MB）")
+    file.file.seek(0)
+    head = file.file.read(HEAD_LEN)
+    if not source.matches(head):
+        raise ApiError(415, "文件内容与扩展名不符（魔数校验失败）")
+    # 每日配额预检并扣减（超限 429，含重置时间文案）
+    quota.consume(user_id, client_ip(request), upload_size)
     task = STORE.create(
         source_name=file.filename or f"upload.{source.ext}",
         source_format=source.ext,
         target_format=target_ext,
     )
-    in_size = _save_upload(file, task.id, source)
+    in_size = _save_upload(file, task.id, source, head, limits.max_upload_bytes)
     STORE.set_in_size(task.id, in_size)
     STORE.mark_queued(task.id)
     try:
