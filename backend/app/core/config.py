@@ -1,9 +1,13 @@
-"""应用配置：从环境变量读取，提供默认值。"""
+"""应用配置：从环境变量读取，提供默认值；自动加载项目根目录 .env。"""
 
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+load_dotenv(BASE_DIR.parent / ".env")  # 与根目录 .env.example 同位置，不进仓库
+
 DATA_DIR = Path(os.getenv("DATA_DIR", str(BASE_DIR / "data")))
 TMP_DIR = Path(os.getenv("TMP_DIR", str(DATA_DIR / "tmp")))
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/app.db")

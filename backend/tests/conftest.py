@@ -14,6 +14,8 @@ _TMP_ROOT = Path(tempfile.mkdtemp(prefix="fc-test-"))
 os.environ["CELERY_TASK_ALWAYS_EAGER"] = "1"
 os.environ["DATABASE_URL"] = f"sqlite:///{_TMP_ROOT / 'test.db'}"
 os.environ["TMP_DIR"] = str(_TMP_ROOT / "tmp")
+# 测试永远假发送：清空 SMTP_HOST（先于 app 导入设置，load_dotenv 不会覆盖已有环境变量）
+os.environ["SMTP_HOST"] = ""
 # 测试专用 Redis DB（/1），避免清空开发数据；转发不稳时可设 TEST_REDIS_URL 指向 WSL IP
 os.environ["REDIS_URL"] = os.getenv("TEST_REDIS_URL", "redis://localhost:6379/1")
 
