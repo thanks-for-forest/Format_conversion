@@ -14,12 +14,21 @@ from app.services.redis_client import get_client, reset_client
 __all__ = ["get_client", "reset_client", "send_allowed", "save_code", "verify_code"]
 
 
-def send_allowed(email: str) -> bool:
-    """发送冷却检查：冷却期内不允许再次发送。"""
+def send_allowed(email: str, ip: str | None = None) -> bool:
+    """发送冷却检查：邮箱冷却 + IP 小时限流（审计 M1）双闸。
+
+    IP 限流先于邮箱冷却：超限直接拒绝，不占用该邮箱的冷却坑。
+    """
+    client = get_client()
+    if ip:
+        ip_key = f"fc:sendip:{ip}"
+        count = client.incr(ip_key)
+        if count == 1:
+            client.expire(ip_key, 3600)
+        if count > config.SEND_IP_HOURLY_LIMIT:
+            return False
     return bool(
-        get_client().set(
-            f"fc:cd:{email}", "1", nx=True, ex=config.CODE_SEND_COOLDOWN_SEC
-        )
+        client.set(f"fc:cd:{email}", "1", nx=True, ex=config.CODE_SEND_COOLDOWN_SEC)
     )
 
 

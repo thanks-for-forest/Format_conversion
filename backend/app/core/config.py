@@ -25,6 +25,8 @@ JWT_REFRESH_TTL_DAYS = int(os.getenv("JWT_REFRESH_TTL_DAYS", "7"))
 CODE_TTL_SEC = int(os.getenv("CODE_TTL_SEC", "300"))
 CODE_SEND_COOLDOWN_SEC = int(os.getenv("CODE_SEND_COOLDOWN_SEC", "60"))
 CODE_MAX_ATTEMPTS = int(os.getenv("CODE_MAX_ATTEMPTS", "5"))
+# IP 级发码小时限流（审计 M1）：防换邮箱刷码耗尽 SMTP 配额
+SEND_IP_HOURLY_LIMIT = int(os.getenv("SEND_IP_HOURLY_LIMIT", "10"))
 SMTP_HOST = os.getenv("SMTP_HOST", "")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
@@ -47,3 +49,7 @@ SWEEP_STUCK_AFTER_MIN = int(os.getenv("SWEEP_STUCK_AFTER_MIN", "120"))
 SWEEP_ROW_RETENTION_DAYS = int(os.getenv("SWEEP_ROW_RETENTION_DAYS", "7"))
 
 TMP_DIR.mkdir(parents=True, exist_ok=True)
+
+# 生产环境兜底（审计 L1）：弱默认密钥直接拒绝启动，防止公开默认值伪造 JWT
+if ENV == "production" and SECRET_KEY == "dev-insecure-secret-change-me":
+    raise RuntimeError("生产环境必须通过环境变量设置强 SECRET_KEY")

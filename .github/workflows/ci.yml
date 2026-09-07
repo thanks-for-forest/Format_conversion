@@ -88,5 +88,8 @@ jobs:
       - name: ESLint
         run: pnpm lint
 
+      - name: 依赖漏洞扫描
+        run: pnpm audit --prod --audit-level high
+
       - name: 生产构建（含类型检查）
         run: pnpm build

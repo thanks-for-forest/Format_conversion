@@ -8,10 +8,10 @@ import logging
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Response
+from fastapi import APIRouter, Cookie, Request, Response
 from pydantic import BaseModel, EmailStr, Field
 
-from app.api.deps import current_user_id
+from app.api.deps import client_ip, current_user_id
 from app.core import config, security
 from app.core.database import get_session
 from app.core.errors import ApiError
@@ -76,9 +76,11 @@ def _current_user_id(access_token: str | None) -> str | None:
 
 
 @router.post("/send-code")
-def send_code(body: SendCodeBody, response: Response) -> dict[str, object]:
-    """发送登录验证码（冷却期内拒绝，防轰炸）。"""
-    if not code_store.send_allowed(body.email):
+def send_code(
+    body: SendCodeBody, request: Request, response: Response
+) -> dict[str, object]:
+    """发送登录验证码（邮箱冷却 + IP 小时限流，防轰炸/防刷 SMTP 配额）。"""
+    if not code_store.send_allowed(body.email, client_ip(request)):
         raise ApiError(429, "发送过于频繁，请稍后再试")
     code = code_store.save_code(body.email)
     mailer.send_code_email(body.email, code)

@@ -7,6 +7,19 @@
 - 阶段：**实现阶段（切片 8 完成：压缩包打包/解压双向）**
 - 状态：切片 8 已跑通——服务端 `/api/archive/pack|extract` 同步端点（内存处理不落盘，防 zip bomb 三重上限+路径穿越拒绝，配额同口径）；前端 `lib/archive.ts` 零依赖手写 zip/tar.gz 读写（原生 DecompressionStream）；页面 `/archive` 本地优先+服务端回退+计次；首页入口；pytest +9 = 55 全绿；eslint/build 全绿；浏览器实测打包、ZIP 138 条目、TAR.GZ 107 条目全部本地完成
 - 本片修复：SQLite `BIGINT PRIMARY KEY` 非行id别名不自增（用 `BigInteger().with_variant(Integer,"sqlite")`）；`.env` FRONTEND_ORIGIN 与前端实际端口不一致 → CORS 拦截但服务端照记 200（易误判前端 bug）
+
+## 安全审计（2026-09-07，standard 模式，10/10 维度覆盖）
+
+- 发现 8 项（1 High / 2 Medium / 5 Low），**已修复 6 项**：
+  - **H1 已修**：`client_ip` 取 XFF 首段可被伪造 → 匿名配额无限刷新；改取最后一跳（反代追加位），+伪造专项测试
+  - **M1 已修**：send-code 缺 IP 级限流可刷爆 SMTP 发信配额；新增 `fc:sendip:{ip}` 小时限流（默认 10/h）
+  - **L1 已修**：production + 弱默认 SECRET_KEY 启动即 RuntimeError
+  - **L3 已修**：ZIP 路径校验统一为「含 .. 即拒 + basename」
+  - **L5 已修**：CI 前端 job 加 pnpm audit
+  - **M2 部分修**（文档强化）：生产部署必须设 `ENV=production`——Cookie Secure 标志与弱密钥拒启都依赖它（见「部署」章节）
+- 接受不改（已声明口径）：L2 logout 无服务端令牌作废；L4 配额 check-then-incr 轻微竞态
+- 全量复核确认无问题面：SQL 全 ORM 参数化、无命令注入/SSRF/反序列化面、上传路径 task_id 派生、ZIP 逐条内存读无 extractall、Celery JSON 序列化、Pillow 12.3 + 自带 DecompressionBomb 防护、JWT 显式 HS256 算法白名单
+- 审计后基线：pytest **57 passed**（+2 加固专项）
 - 验证：已在 WSL2 Ubuntu（docker redis:7 容器）完成真实 broker 端到端验证——uvicorn 上传 → Celery 投递 → 独立 worker 进程消费 → running/succeeded → 下载 JPEG（魔数 ff d8 ff 正确）
 - 真实验证暴露并修复 3 处问题：① celery_app 缺 `include=["app.workers.convert_task"]`（worker 不注册任务，消息积压不执行）；② pillow / python-multipart 未在 pyproject 声明（本地靠 venv 遗留，CI 全新安装必失败）；③ tests/conftest.py 在设 env 前 import app（config 固化为默认值，测试污染真实 data/app.db）
 
@@ -30,6 +43,7 @@
 ## 部署（Docker Compose，切片 7）
 
 - 前置：根目录 `.env` 至少配 `SECRET_KEY`（发信再配 `SMTP_*`）；参照 `.env.example`
+- **生产清单（必做）**：`ENV=production`（Cookie Secure 标志 + 弱密钥拒启依赖它）、强随机 `SECRET_KEY`、`SITE_ADDRESS` 设域名、`FRONTEND_ORIGIN` 设正式地址
 - 构建启动：`docker compose up -d --build`（六服务：caddy/api/worker/beat/redis/web）
 - 冒烟：`curl http://localhost/api/quota/summary` 返回匿名档即通；首页 200
 - 访问：`SITE_ADDRESS=:80` 默认纯 HTTP；生产设为域名（DNS 指向服务器、放通 80/443）后 Caddy 自动签发 HTTPS

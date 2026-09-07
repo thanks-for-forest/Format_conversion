@@ -83,10 +83,9 @@ def _read_zip(data: bytes) -> list[tuple[str, bytes]]:
                 _check_entry(info.filename, info.file_size, stats)
                 if info.filename.endswith("/"):
                     continue
-                clean = safe_name(info.filename)
-                if clean != info.filename and ".." in info.filename:
+                if ".." in info.filename:
                     raise ApiError(415, "压缩包含不安全的路径条目")
-                entries.append((clean, zf.read(info)))
+                entries.append((safe_name(info.filename), zf.read(info)))
     except zipfile.BadZipFile as exc:
         raise ApiError(415, "ZIP 文件已损坏或格式不合法") from exc
     return entries
