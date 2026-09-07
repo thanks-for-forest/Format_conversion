@@ -3,6 +3,7 @@
 切片 1：同步转换，仅 PNG → JPG；匿名任务用 pass_key 防遍历。
 切片 3a：任务状态经 SQLite 落库，对外 API 契约不变。
 切片 3b：投递 Celery 异步任务。
+切片 4a：表驱动多格式互转（五进三出），扩展名 + 魔数双重校验。
 """
 
 import hmac
@@ -16,6 +17,15 @@ from starlette.responses import FileResponse
 
 from app.core import config
 from app.core.errors import ApiError
+from app.core.formats import (
+    HEAD_LEN,
+    INPUT_FORMATS,
+    OUTPUT_FORMATS,
+    ImageFormat,
+    ext_of_filename,
+    media_type_of,
+    normalize_ext,
+)
 from app.core.responses import ok
 from app.models.task import ConversionTask
 from app.services.task_store import STORE
@@ -25,26 +35,27 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["convert"])
 
-PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 CHUNK_SIZE = 1024 * 1024
 
 
-def _validate_request(file: UploadFile, target: str) -> None:
-    """请求参数与文件名预检。"""
-    if target.lower() != "jpg":
-        raise ApiError(400, "切片 1 仅支持 target=jpg")
-    name = (file.filename or "").lower()
-    if not name.endswith(".png"):
-        raise ApiError(415, "仅支持 PNG 文件（扩展名 .png）")
+def _validate_request(file: UploadFile, target: str) -> ImageFormat:
+    """请求参数与文件名预检：目标格式白名单 + 源扩展名白名单。"""
+    target_ext = normalize_ext(target)
+    if target_ext not in OUTPUT_FORMATS:
+        raise ApiError(400, "仅支持输出 png / jpg / webp")
+    source = INPUT_FORMATS.get(ext_of_filename(file.filename or ""))
+    if source is None:
+        raise ApiError(415, "仅支持 png / jpg / webp / bmp / gif（扩展名）")
+    return source
 
 
-def _save_upload(file: UploadFile, task_id: str) -> int:
+def _save_upload(file: UploadFile, task_id: str, source: ImageFormat) -> int:
     """魔数校验 + 流式落盘（限额内分块写入，超限即拒绝）。"""
     file.file.seek(0)
-    head = file.file.read(len(PNG_MAGIC))
-    if head != PNG_MAGIC:
-        raise ApiError(415, "文件内容不是有效 PNG（魔数校验失败）")
-    path = config.TMP_DIR / f"{task_id}.png"
+    head = file.file.read(HEAD_LEN)
+    if not source.matches(head):
+        raise ApiError(415, "文件内容与扩展名不符（魔数校验失败）")
+    path = config.TMP_DIR / f"{task_id}.{source.ext}"
     size = len(head)
     try:
         with path.open("wb") as out:
@@ -82,14 +93,15 @@ def _load_task(task_id: str, pass_key: str) -> ConversionTask:
 def create_conversion(
     file: Annotated[UploadFile, File()], target: Annotated[str, Form()] = "jpg"
 ) -> dict[str, object]:
-    """上传 PNG 后异步转换为 JPG，立即返回任务凭证（queued）。"""
-    _validate_request(file, target)
+    """上传图片后异步转换，立即返回任务凭证（queued）。"""
+    source = _validate_request(file, target)
+    target_ext = normalize_ext(target)
     task = STORE.create(
-        source_name=file.filename or "upload.png",
-        source_format="png",
-        target_format="jpg",
+        source_name=file.filename or f"upload.{source.ext}",
+        source_format=source.ext,
+        target_format=target_ext,
     )
-    in_size = _save_upload(file, task.id)
+    in_size = _save_upload(file, task.id, source)
     STORE.set_in_size(task.id, in_size)
     STORE.mark_queued(task.id)
     try:
@@ -124,7 +136,7 @@ def download_task(task_id: str, pass_key: str = "") -> FileResponse:
     stem = Path(task.source_name).stem
     return FileResponse(
         path=task.out_path,
-        media_type="image/jpeg",
+        media_type=media_type_of(task.target_format),
         filename=f"{stem}.{task.target_format}",
         background=BackgroundTask(_cleanup_task_files, task.id),
     )

@@ -19,7 +19,7 @@ def run_conversion(task_id: str) -> None:
         return
     STORE.mark_running(task_id)
     try:
-        convert_service.png_to_jpg(task.in_path, task.out_path)
+        convert_service.convert_image(task.in_path, task.out_path, task.target_format)
     except ApiError as exc:
         task.in_path.unlink(missing_ok=True)
         detail = exc.detail if isinstance(exc.detail, str) else "转换失败"

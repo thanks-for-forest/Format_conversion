@@ -1,72 +1,41 @@
 "use client";
 
 import { useState, type ChangeEvent, type DragEvent } from "react";
+import {
+  buildDownloadUrl,
+  createConversion,
+  pollUntilDone,
+  type TaskInfo,
+} from "./lib/api";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
-
-const ACCEPT_EXT = ".png";
-const ACCEPT_MIME = "image/png";
+const SOURCE_EXTS = ["png", "jpg", "jpeg", "webp", "bmp", "gif"];
+const TARGET_EXTS = ["png", "jpg", "webp"];
 
 const COPY = {
   title: "文件格式转换",
-  subtitle: "切片 2：PNG → JPG（服务端异步转换）",
-  pick: "选择 PNG 文件",
-  dropHint: "拖拽 PNG 文件到此处，或点击选择",
+  subtitle: "切片 4a：图片互转（png / jpg / webp / bmp / gif → png / jpg / webp）",
+  dropHint: "拖拽图片到此处，或点击选择",
+  targetLabel: "转换为：",
   convert: "开始转换",
   converting: "转换中…",
   done: "转换完成，点击下载：",
-  failed: "转换失败",
   errorPrefix: "出错了：",
-  limitHint: "匿名上限 50MB，仅支持 .png 扩展名",
+  limitHint: "匿名上限 50MB，支持 png / jpg / jpeg / webp / bmp / gif",
 } as const;
 
-interface CreateResult {
-  task_id: string;
-  pass_key: string;
-  status: string;
-  in_size: number;
+function sourceExtOf(name: string): string {
+  const parts = name.toLowerCase().split(".");
+  const ext = parts.length > 1 ? parts[parts.length - 1] : "";
+  return ext === "jpeg" ? "jpg" : ext;
 }
 
-interface TaskInfo {
-  task_id: string;
-  status: string;
-  message: string;
-  source_name: string;
-  target_ext: string;
-  in_size: number;
-  out_size: number | null;
-  files_removed: boolean;
-}
-
-interface Envelope<T> {
-  code: number;
-  data: T | null;
-  message: string;
-}
-
-function toJpgName(name: string): string {
-  return `${name.slice(0, -4)}.jpg`;
-}
-
-async function pollUntilDone(taskId: string, passKey: string): Promise<TaskInfo> {
-  for (;;) {
-    const resp = await fetch(
-      `${API_BASE}/api/tasks/${taskId}?pass_key=${passKey}`
-    );
-    const body = (await resp.json()) as Envelope<TaskInfo>;
-    if (body.code !== 0 || !body.data) {
-      throw new Error(body.message || `HTTP ${resp.status}`);
-    }
-    const data = body.data;
-    if (data.status === "succeeded" || data.status === "failed") {
-      return data;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 800));
-  }
+function outputName(name: string, target: string): string {
+  return `${name.replace(/\.[^.]+$/, "")}.${target}`;
 }
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
+  const [target, setTarget] = useState("jpg");
   const [phase, setPhase] = useState<"idle" | "converting" | "done" | "error">(
     "idle"
   );
@@ -76,31 +45,22 @@ export default function Home() {
   const [pickError, setPickError] = useState("");
   const [dragging, setDragging] = useState(false);
 
+  const busy = phase === "converting";
+  const sourceExt = file ? sourceExtOf(file.name) : "";
+  const targetOptions = TARGET_EXTS.filter((t) => t !== sourceExt);
+
   async function handleConvert() {
     if (!file) return;
     setPhase("converting");
     setMessage("");
     try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("target", "jpg");
-      const resp = await fetch(`${API_BASE}/api/convert`, {
-        method: "POST",
-        body: form,
-      });
-      const body = (await resp.json()) as Envelope<CreateResult>;
-      if (body.code !== 0 || !body.data) {
-        throw new Error(body.message || `HTTP ${resp.status}`);
-      }
-      const { task_id, pass_key } = body.data;
-      const info = await pollUntilDone(task_id, pass_key);
+      const created = await createConversion(file, target);
+      const info: TaskInfo = await pollUntilDone(created.task_id, created.pass_key);
       if (info.status !== "succeeded") {
         throw new Error(info.message || "转换失败");
       }
-      setDownloadUrl(
-        `${API_BASE}/api/tasks/${task_id}/download?pass_key=${pass_key}`
-      );
-      setDownloadName(toJpgName(file.name));
+      setDownloadUrl(buildDownloadUrl(created.task_id, created.pass_key));
+      setDownloadName(outputName(file.name, target));
       setPhase("done");
     } catch (err) {
       setMessage(err instanceof Error ? err.message : String(err));
@@ -108,27 +68,31 @@ export default function Home() {
     }
   }
 
+  function resetResult() {
+    setPhase("idle");
+    setMessage("");
+    setDownloadUrl("");
+  }
+
   function applyPickedFile(picked: File | null) {
     if (!picked) {
       setFile(null);
-      setPhase("idle");
-      setMessage("");
-      setDownloadUrl("");
       setPickError("");
+      resetResult();
       return;
     }
-    const name = picked.name.toLowerCase();
-    const ok = name.endsWith(ACCEPT_EXT) || picked.type === ACCEPT_MIME;
-    if (!ok) {
+    const ext = sourceExtOf(picked.name);
+    if (!SOURCE_EXTS.includes(ext)) {
       setFile(null);
-      setPickError(`仅支持 PNG 文件（${ACCEPT_EXT}），收到：${picked.name}`);
+      setPickError(`仅支持 ${SOURCE_EXTS.join(" / ")}，收到：${picked.name}`);
       return;
     }
     setFile(picked);
     setPickError("");
-    setPhase("idle");
-    setMessage("");
-    setDownloadUrl("");
+    resetResult();
+    if (target === ext) {
+      setTarget(TARGET_EXTS.find((t) => t !== ext) ?? "jpg");
+    }
   }
 
   function handlePick(e: ChangeEvent<HTMLInputElement>) {
@@ -142,8 +106,6 @@ export default function Home() {
     applyPickedFile(e.dataTransfer.files?.[0] ?? null);
   }
 
-  const busy = phase === "converting";
-
   return (
     <main
       style={{
@@ -155,7 +117,7 @@ export default function Home() {
         fontFamily: "sans-serif",
       }}
     >
-      <h1 style={{ fontSize: 24, margin: 0 }}>{COPY.title}</h1>
+      <h1 style={{ fontSize: 24, margin: 0 }}>文件格式转换</h1>
       <p style={{ color: "#6b7280" }}>{COPY.subtitle}</p>
 
       <div
@@ -176,7 +138,7 @@ export default function Home() {
       >
         <input
           type="file"
-          accept={`${ACCEPT_MIME},${ACCEPT_EXT}`}
+          accept={SOURCE_EXTS.map((e) => `.${e}`).join(",")}
           onChange={handlePick}
           disabled={busy}
           style={{ display: "block", margin: "0 auto" }}
@@ -195,20 +157,46 @@ export default function Home() {
       )}
       <p style={{ fontSize: 12, color: "#9ca3af" }}>{COPY.limitHint}</p>
 
-      <button
-        onClick={handleConvert}
-        disabled={!file || busy}
-        style={{
-          padding: "10px 24px",
-          borderRadius: 8,
-          border: "none",
-          background: !file || busy ? "#c7cdd4" : "#2563eb",
-          color: "#fff",
-          cursor: !file || busy ? "not-allowed" : "pointer",
-        }}
-      >
-        {busy ? COPY.converting : COPY.convert}
-      </button>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <label style={{ fontSize: 14, color: "#374151" }}>
+          {COPY.targetLabel}
+          <select
+            value={target}
+            onChange={(e) => {
+              setTarget(e.target.value);
+              resetResult();
+            }}
+            disabled={busy || !file}
+            style={{
+              marginLeft: 8,
+              padding: "6px 10px",
+              borderRadius: 8,
+              border: "1px solid #d1d5db",
+              background: "#fff",
+            }}
+          >
+            {targetOptions.map((t) => (
+              <option key={t} value={t}>
+                {t.toUpperCase()}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          onClick={handleConvert}
+          disabled={!file || busy}
+          style={{
+            padding: "10px 24px",
+            borderRadius: 8,
+            border: "none",
+            background: !file || busy ? "#c7cdd4" : "#2563eb",
+            color: "#fff",
+            cursor: !file || busy ? "not-allowed" : "pointer",
+          }}
+        >
+          {busy ? COPY.converting : COPY.convert}
+        </button>
+      </div>
 
       {phase === "done" && (
         <div style={{ marginTop: 24 }}>

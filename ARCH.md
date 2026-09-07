@@ -1,6 +1,6 @@
 # 架构草案（ARCH）
 
-> 版本：v0.6.1　关联 PRD v0.3　更新日期：2026-09-06
+> 版本：v0.7　关联 PRD v0.3　更新日期：2026-09-06
 
 ## 1. 技术栈（定稿）
 
@@ -182,3 +182,4 @@ rejected(审核/配额拦截)  ←─ 上传
 | v0.5 | 切片3a：SQLite+SQLAlchemy/Alembic 落库 ConversionTask 替换内存 TaskStore（WAL、惰性引擎、session-per-operation DAO），文件路径改为 id+格式派生属性不落库；Celery+Redis 延后到切片3b | 先落库再上 Celery 的中间态；路径可按 `{id}.{format}` 确定性重建，避免冗余路径列 |
 | v0.6 | 切片3b：Celery+Redis（broker）替换进程内线程 worker；任务状态仍落 DB（不启用 result backend）；API 投递前 mark_queued，投递失败标记 failed 并 503；测试与 CI 用 `CELERY_TASK_ALWAYS_EAGER=1`，无需真实 Redis | 状态已落库，worker 独立进程可读写同一 DB 保持一致；eager 模式让单测无外部依赖；broker 不可用须显式失败提示用户重试 |
 | v0.6.1 | 真实 broker 验证（WSL2 + docker redis:7）修复：Celery 实例加 `include=["app.workers.convert_task"]`；pyproject 补声明 pillow/python-multipart；conftest 先设 env 再 import app | worker 不会自动发现任务模块，缺 include 则消息积压不执行（真实验证暴露）；两依赖本地靠 venv 遗留、CI 全新安装必失败；config 导入期固化导致测试污染真实 DB |
+| v0.7 | 切片4a：新增 `core/formats.py` 格式注册表（扩展名/魔数签名/PIL名/MIME 唯一来源），服务端图片互转扩为五进三出（png/jpg/webp/bmp/gif → png/jpg/webp）；魔数签名支持多段偏移（WebP RIFF+WEBP、GIF 双版本）；转换按表驱动（JPG 压平 RGB、WebP/PNG 保留 Alpha）；前端抽 `app/lib/api.ts` 并加目标格式下拉（排除同格式） | 硬编码双 if 白名单不可扩展；签名表可测试且新格式只需加一行注册；JPEG 不支持 Alpha 必须压平；file ≤250 行约束促成了 API 客户端与 UI 分离，为 4b 本地引擎复用做准备 |
