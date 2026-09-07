@@ -81,7 +81,9 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
 
       - name: 安装依赖
-        run: pnpm install --frozen-lockfile
+        # --ignore-scripts 与容器一致：pnpm 12 非交互环境对未批准构建脚本
+        # （unrs-resolver 的 postinstall，非必需）直接 ERR_PNPM_IGNORED_BUILDS
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: ESLint
         run: pnpm lint
