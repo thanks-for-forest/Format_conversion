@@ -28,6 +28,6 @@
 
 ## 本地运行（开发）
 
-- API：`cd backend && uv run uvicorn app.main:app --port 8010`（需先 `uv run alembic upgrade head` 建表；`.env` 或环境变量设 DATABASE_URL / REDIS_URL）
+- API：`cd backend && uv run uvicorn app.main:app --port 8000`（须用 8000 或设 `NEXT_PUBLIC_API_BASE`——前端默认指向 `localhost:8000`；首次需 `uv run alembic upgrade head` 建表；无 Redis 时加 `$env:CELERY_TASK_ALWAYS_EAGER="1"` 即可同步执行）
 - Worker：`cd backend && uv run celery -A app.workers.celery_app worker -P solo -l info`（Windows 需 `-P solo`，prefork 不支持）
 - 测试：无需 Redis（conftest 设 `CELERY_TASK_ALWAYS_EAGER=1` 同步执行）
