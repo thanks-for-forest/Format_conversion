@@ -4,8 +4,8 @@
 
 ## 当前阶段
 
-- 阶段：**实现阶段（切片 8 完成：压缩包打包/解压双向）**
-- 状态：切片 8 已跑通——服务端 `/api/archive/pack|extract` 同步端点（内存处理不落盘，防 zip bomb 三重上限+路径穿越拒绝，配额同口径）；前端 `lib/archive.ts` 零依赖手写 zip/tar.gz 读写（原生 DecompressionStream）；页面 `/archive` 本地优先+服务端回退+计次；首页入口；pytest +9 = 55 全绿；eslint/build 全绿；浏览器实测打包、ZIP 138 条目、TAR.GZ 107 条目全部本地完成
+- 阶段：**实现阶段（切片 9 完成：SEO 落地页扩展至压缩包）**
+- 状态：切片 9 已跑通——ArchivePanel 组件化（archive 页瘦身）；新落地页 `/convert/files-to-zip`（打包）与 `/convert/zip-to-files`（解压），generateMetadata + 步骤文案 + 双向互链；图片落地页补压缩包互链；sitemap 16 条；eslint/build 全绿；浏览器实测两页渲染、落地页解压计次生效、sitemap 含新页
 - 本片修复：SQLite `BIGINT PRIMARY KEY` 非行id别名不自增（用 `BigInteger().with_variant(Integer,"sqlite")`）；`.env` FRONTEND_ORIGIN 与前端实际端口不一致 → CORS 拦截但服务端照记 200（易误判前端 bug）
 
 ## 安全审计（2026-09-07，standard 模式，10/10 维度覆盖）
@@ -36,9 +36,8 @@
 
 ## 下一步
 
-1. 切片 9：新转换类别——文档（LibreOffice 服务端）/ 音视频（ffmpeg.wasm + 服务端）
-2. SEO：/archive 与打包解压落地页（如 zip-pack、unzip-online）进 sitemap
-3. 域名与上线：购买域名 → DNS 解析 → 服务器部署 compose 栈（SITE_ADDRESS 设域名走 Caddy 自动 HTTPS）
+1. 切片 10：新转换类别——文档（LibreOffice 服务端）/ 音视频（ffmpeg.wasm + 服务端）
+2. 域名与上线：购买域名 → DNS 解析 → 服务器部署 compose 栈（SITE_ADDRESS 设域名走 Caddy 自动 HTTPS）
 
 ## 部署（Docker Compose，切片 7）
 

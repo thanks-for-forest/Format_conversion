@@ -65,6 +65,16 @@ export default async function ConvertPage({ params }: PageProps) {
               </span>
             ))}
           </p>
+          <p style={{ lineHeight: 1.8, margin: "8px 0 0" }}>
+            压缩包工具：
+            <Link href="/convert/files-to-zip" style={{ color: "#2563eb" }}>
+              文件打包成 ZIP
+            </Link>{" "}
+            ·{" "}
+            <Link href="/convert/zip-to-files" style={{ color: "#2563eb" }}>
+              在线解压 ZIP / TAR.GZ
+            </Link>
+          </p>
         </section>
       }
     />
