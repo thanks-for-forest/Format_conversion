@@ -1,6 +1,6 @@
 # 架构草案（ARCH）
 
-> 版本：v0.13　关联 PRD v0.3　更新日期：2026-09-07
+> 版本：v0.14　关联 PRD v0.3　更新日期：2026-09-07
 
 ## 1. 技术栈（定稿）
 
@@ -193,3 +193,4 @@ rejected(审核/配额拦截)  ←─ 上传
 | v0.11 | 切片6a：SEO 落地页 `/convert/[a-to-b]`。`lib/formats.ts` 前端格式单一来源（五进三出 12 组合 + jpeg 别名 + parseCombo）；`generateStaticParams` 预渲染 12 页 + `dynamicParams=false`（非法 slug 直接 404）；`generateMetadata` 按组合生成标题/描述；页面含介绍、转换步骤、其余 11 组合互链（内链 SEO）。组件重构：转换逻辑从 page.tsx 抽出为 `components/Converter.tsx`（支持 lockedSource/lockedTarget 锁定格式：隐藏目标下拉、仅收该来源、提示「本页仅支持 X」）；`components/SiteFrame.tsx` 客户端骨架持有 useQuota 单实例并传 AuthBar/Converter，页面只传可序列化 JSX（heading/below） | 兑现 PRD SEO 引流核心：每组合一页静态 HTML 利于收录；跨服务端/客户端边界不能传函数（render-prop 首选方案 build 失败），改为骨架组件直持 Converter；useQuota 必须单实例否则 AuthBar 与转换器配额状态脱节（5b 教训的泛化） |
 | v0.12 | 切片6b：SEO 收尾。`app/sitemap.ts`（构建期静态生成 14 条 URL：首页 1.0 / 12 落地页 0.8 / 登录 0.3）+ `app/robots.txt`（全站允许 + 指向 sitemap）；站点地址走 `lib/site.ts` 的 `SITE_URL`（构建期 env，默认 localhost:3100，生产设正式域名），同步补 `frontend/.env.example`。本地测试素材库 `testdata/`（images/audio/video/docs/archives 12 个真实样例文件，魔数逐一验证，.gitignore 忽略不入库） | sitemap/robots 与落地页配套才能被搜索引擎收录；SITE_URL 用构建期 env 而非 NEXT_PUBLIC_（sitemap 在构建期生成，无需进客户端包）；沙箱 DNS 部分域名不可达，素材源改用 Pillow 测试图库 / MDN / w3.org / calibre / codeload |
 | v0.13 | 切片6c：账户与配额页 `/account`。纯前端页复用 useQuota + 既有 `/api/quota/summary`（无后端改动）：次数/流量进度条、单文件上限、本地转换口径、重置时刻（reset_at UTC 转本地时区展示）；匿名态展示当前用量 + 登录引导与两档额度对比；AuthBar 增加「配额」入口、登录后邮箱链接到 /account；400ms 会话探测窗口防未登录闪烁 | 账户页是用户自查配额的必备入口（PRD 配额透明度）；页面不入 sitemap（用户相关页无收录价值）；登录态视图与匿名态共用 QuotaPanel，档位差异全部来自 summary 接口（pytest 已覆盖两档），无需为页面加后端测试 |
+| v0.14 | 切片7：docker-compose 部署 + sweeper。后端 `services/sweeper.py`（三类清理：终态超时未下载文件 / 活动态卡死任务标 failed+清残留 / 过期记录删行，全部 UTC 判定）+ `workers/sweep_task.py`（maintenance.sweep）+ celery beat 每 10 分钟调度（SWEEP_INTERVAL_MIN 可配）；pytest +7 用例（46 全绿）。镜像：backend Dockerfile（uv --frozen 装依赖，启动先 alembic upgrade head 再 uvicorn，alembic 移入主依赖）；frontend Dockerfile 三段式（standalone 产物 node server.js，NEXT_PUBLIC_API_BASE 构建期传空串走同源）；next.config 开 output:"standalone"。编排：caddy（/api/*→api:8000，其余→web:3000，SITE_ADDRESS=:80 冒烟/域名自动 HTTPS）+ api/worker/beat（共用 app_data 卷：SQLite+临时文件）+ redis，健康检查 /health | 兑现 PRD 单机 Docker Compose 部署；清扫三条路径补上「下载即删」之外的超时兜底（磁盘安全底线）；pnpm 12 非交互环境对未批准构建脚本直接 ERR_PNPM_IGNORED_BUILDS（onlyBuiltDependencies/ignoredBuiltDependencies 写 pnpm-workspace.yaml 均无效，最后 --ignore-scripts 解决——unrs-resolver 为 napi 预编译包 postinstall 非必需）；冒烟 E2E：上传 30.6KB→worker 转换→下载 6032B 真 JPEG（ffd8ff），summary 匿名档 5 次/100MB 正确 |

@@ -1,0 +1,84 @@
+# Format_conversion 全栈编排（切片 7）
+# 用法：在项目根目录 .env 配好 SECRET_KEY/SMTP_* 后执行
+#   docker compose up -d --build
+# 默认 SITE_ADDRESS=:80（纯 HTTP 冒烟）；生产改域名走 Caddy 自动 HTTPS。
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    environment: &backend_env
+      DATABASE_URL: sqlite:////app/data/app.db
+      REDIS_URL: redis://redis:6379/0
+      ENV: ${ENV:-development}
+      SECRET_KEY: ${SECRET_KEY:?请在根目录 .env 设置 SECRET_KEY}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-noreply@example.com}
+    volumes:
+      - app_data:/app/data
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build: ./backend
+    restart: unless-stopped
+    environment: *backend_env
+    volumes:
+      - app_data:/app/data
+    depends_on:
+      - redis
+    command: celery -A app.workers.celery_app worker --loglevel=info
+
+  beat:
+    build: ./backend
+    restart: unless-stopped
+    environment: *backend_env
+    volumes:
+      - app_data:/app/data
+    depends_on:
+      - redis
+    command: celery -A app.workers.celery_app beat --loglevel=info
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        # 同源部署：空串让前端走相对路径 /api/*，由 Caddy 反代到 api
+        NEXT_PUBLIC_API_BASE: ""
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+
+volumes:
+  app_data:
+  caddy_data:
+  caddy_config:

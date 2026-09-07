@@ -40,4 +40,10 @@ ANON_DAILY_TRAFFIC_BYTES = int(os.getenv("ANON_DAILY_TRAFFIC_BYTES", str(100 * _
 USER_DAILY_COUNT = int(os.getenv("USER_DAILY_COUNT", "50"))
 USER_DAILY_TRAFFIC_BYTES = int(os.getenv("USER_DAILY_TRAFFIC_BYTES", str(2048 * _MB)))
 
+# ===== 清扫（切片 7，Celery beat 定时执行） =====
+SWEEP_INTERVAL_MIN = int(os.getenv("SWEEP_INTERVAL_MIN", "10"))
+SWEEP_FILE_RETENTION_MIN = int(os.getenv("SWEEP_FILE_RETENTION_MIN", "60"))
+SWEEP_STUCK_AFTER_MIN = int(os.getenv("SWEEP_STUCK_AFTER_MIN", "120"))
+SWEEP_ROW_RETENTION_DAYS = int(os.getenv("SWEEP_ROW_RETENTION_DAYS", "7"))
+
 TMP_DIR.mkdir(parents=True, exist_ok=True)

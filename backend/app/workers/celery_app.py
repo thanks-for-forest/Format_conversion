@@ -7,7 +7,7 @@ from app.core import config
 celery_app = Celery(
     "format_conversion",
     broker=config.REDIS_URL,
-    include=["app.workers.convert_task"],
+    include=["app.workers.convert_task", "app.workers.sweep_task"],
 )
 
 celery_app.conf.update(
@@ -18,4 +18,11 @@ celery_app.conf.update(
     accept_content=["json"],
     timezone="UTC",
     broker_connection_retry_on_startup=True,
+    # beat 定时清扫（切片 7）：超时未下载文件与过期记录的兜底清理
+    beat_schedule={
+        "sweep-expired": {
+            "task": "maintenance.sweep",
+            "schedule": config.SWEEP_INTERVAL_MIN * 60.0,
+        },
+    },
 )

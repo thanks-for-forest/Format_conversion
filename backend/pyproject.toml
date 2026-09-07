@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "文件格式转换站点后端"
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.19.2",
     "celery>=5.6.3",
     "fastapi>=0.115",
     "pillow>=12.3.0",
@@ -18,7 +19,6 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "alembic>=1.19.2",
     "ruff>=0.6",
     "mypy>=1.11",
     "pytest>=8.0",

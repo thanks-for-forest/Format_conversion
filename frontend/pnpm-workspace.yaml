@@ -1,3 +1,7 @@
 allowBuilds:
-  sharp: false
-  unrs-resolver: false
+  unrs-resolver: set this to true or false
+# pnpm 12 设置：unrs-resolver 为 napi 预编译二进制（postinstall 非必需），
+# 显式声明忽略其安装脚本，否则非交互环境下 --frozen-lockfile 会因
+# ERR_PNPM_IGNORED_BUILDS 失败
+ignoredBuiltDependencies:
+  - unrs-resolver

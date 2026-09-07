@@ -1,0 +1,10 @@
+# Caddy 反代（切片 7）：/api/* → 后端，其余 → Next.js
+# SITE_ADDRESS 为 :80 时纯 HTTP；设为域名（如 example.com）时 Caddy 自动签发 HTTPS。
+{$SITE_ADDRESS} {
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}
