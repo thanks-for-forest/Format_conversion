@@ -30,6 +30,7 @@ next-env.d.ts
 data/
 tmp/
 temp/
+testdata/
 *.db
 *.sqlite3
 
