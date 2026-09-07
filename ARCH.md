@@ -1,6 +1,6 @@
 # 架构草案（ARCH）
 
-> 版本：v0.7　关联 PRD v0.3　更新日期：2026-09-06
+> 版本：v0.8　关联 PRD v0.3　更新日期：2026-09-07
 
 ## 1. 技术栈（定稿）
 
@@ -183,3 +183,4 @@ rejected(审核/配额拦截)  ←─ 上传
 | v0.6 | 切片3b：Celery+Redis（broker）替换进程内线程 worker；任务状态仍落 DB（不启用 result backend）；API 投递前 mark_queued，投递失败标记 failed 并 503；测试与 CI 用 `CELERY_TASK_ALWAYS_EAGER=1`，无需真实 Redis | 状态已落库，worker 独立进程可读写同一 DB 保持一致；eager 模式让单测无外部依赖；broker 不可用须显式失败提示用户重试 |
 | v0.6.1 | 真实 broker 验证（WSL2 + docker redis:7）修复：Celery 实例加 `include=["app.workers.convert_task"]`；pyproject 补声明 pillow/python-multipart；conftest 先设 env 再 import app | worker 不会自动发现任务模块，缺 include 则消息积压不执行（真实验证暴露）；两依赖本地靠 venv 遗留、CI 全新安装必失败；config 导入期固化导致测试污染真实 DB |
 | v0.7 | 切片4a：新增 `core/formats.py` 格式注册表（扩展名/魔数签名/PIL名/MIME 唯一来源），服务端图片互转扩为五进三出（png/jpg/webp/bmp/gif → png/jpg/webp）；魔数签名支持多段偏移（WebP RIFF+WEBP、GIF 双版本）；转换按表驱动（JPG 压平 RGB、WebP/PNG 保留 Alpha）；前端抽 `app/lib/api.ts` 并加目标格式下拉（排除同格式） | 硬编码双 if 白名单不可扩展；签名表可测试且新格式只需加一行注册；JPEG 不支持 Alpha 必须压平；file ≤250 行约束促成了 API 客户端与 UI 分离，为 4b 本地引擎复用做准备 |
+| v0.8 | 切片4b：新增 `app/lib/convert.ts` 本地 Canvas 引擎（createImageBitmap + OffscreenCanvas，JPEG 白底压平，quality 85）；路由判定 `canConvertLocally`（源可解码 + 目标可编码 + ≤25MB）本地优先，失败自动回退服务端；完成区显示「转换方式：本地（文件未上传）/服务端」；下载用 blob: URL（重置时 revoke）。浏览器自动化验证：小文件零 /api/convert 请求 + WebP 魔数正确；29MB 大图自动走服务端。教训：`next build` 与 `next dev` 共用 `.next` 会使 dev 路由注册失效（404），切换前需清缓存 | 兑现 PRD「本地优先不上传」核心卖点；Canvas 原生编解码覆盖五进三出无需 wasm 依赖（@jsquash 留给 AVIF）；25MB 阈值防大图撑爆标签页内存 |

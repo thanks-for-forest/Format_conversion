@@ -7,6 +7,7 @@ import {
   pollUntilDone,
   type TaskInfo,
 } from "./lib/api";
+import { canConvertLocally, convertLocally } from "./lib/convert";
 
 const SOURCE_EXTS = ["png", "jpg", "jpeg", "webp", "bmp", "gif"];
 const TARGET_EXTS = ["png", "jpg", "webp"];
@@ -44,6 +45,7 @@ export default function Home() {
   const [downloadName, setDownloadName] = useState("");
   const [pickError, setPickError] = useState("");
   const [dragging, setDragging] = useState(false);
+  const [pathUsed, setPathUsed] = useState<"local" | "server" | null>(null);
 
   const busy = phase === "converting";
   const sourceExt = file ? sourceExtOf(file.name) : "";
@@ -54,6 +56,20 @@ export default function Home() {
     setPhase("converting");
     setMessage("");
     try {
+      // 本地优先：浏览器 Canvas 转换，文件不上传；失败自动回退服务端
+      if (canConvertLocally(sourceExt, target, file.size)) {
+        try {
+          const blob = await convertLocally(file, target);
+          setPathUsed("local");
+          setDownloadUrl(URL.createObjectURL(blob));
+          setDownloadName(outputName(file.name, target));
+          setPhase("done");
+          return;
+        } catch {
+          setPathUsed(null);
+        }
+      }
+      setPathUsed("server");
       const created = await createConversion(file, target);
       const info: TaskInfo = await pollUntilDone(created.task_id, created.pass_key);
       if (info.status !== "succeeded") {
@@ -71,7 +87,11 @@ export default function Home() {
   function resetResult() {
     setPhase("idle");
     setMessage("");
-    setDownloadUrl("");
+    setDownloadUrl((prev) => {
+      if (prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return "";
+    });
+    setPathUsed(null);
   }
 
   function applyPickedFile(picked: File | null) {
@@ -208,6 +228,10 @@ export default function Home() {
           >
             {downloadName}
           </a>
+          <p style={{ fontSize: 12, color: "#6b7280", marginTop: 8 }}>
+            转换方式：
+            {pathUsed === "local" ? "本地（文件未上传）" : "服务端"}
+          </p>
         </div>
       )}
 
