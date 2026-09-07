@@ -127,3 +127,35 @@ export async function reportLocalCount(): Promise<void> {
   });
   await unwrap<{ counted: boolean }>(resp, (b) => b as Envelope<{ counted: boolean }>);
 }
+
+// ===== 压缩包（切片 8）：打包 / 解压，响应直接为附件流 =====
+
+export async function packFiles(files: File[]): Promise<Blob> {
+  const form = new FormData();
+  for (const f of files) form.append("files", f);
+  const resp = await fetch(`${API_BASE}/api/archive/pack`, {
+    method: "POST",
+    body: form,
+    credentials: "include",
+  });
+  if (!resp.ok) {
+    const body = (await resp.json()) as Envelope<null>;
+    throw new Error(body.message || `HTTP ${resp.status}`);
+  }
+  return resp.blob();
+}
+
+export async function extractArchive(file: File): Promise<Blob> {
+  const form = new FormData();
+  form.append("file", file);
+  const resp = await fetch(`${API_BASE}/api/archive/extract`, {
+    method: "POST",
+    body: form,
+    credentials: "include",
+  });
+  if (!resp.ok) {
+    const body = (await resp.json()) as Envelope<null>;
+    throw new Error(body.message || `HTTP ${resp.status}`);
+  }
+  return resp.blob();
+}

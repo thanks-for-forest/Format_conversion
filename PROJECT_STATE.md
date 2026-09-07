@@ -4,8 +4,8 @@
 
 ## 当前阶段
 
-- 阶段：**实现阶段（切片 7 完成：docker-compose 部署 + sweeper 清扫）**
-- 状态：切片 7 已跑通——后端 sweeper（终态超时文件 / 卡死任务 / 过期记录三类清理，beat 每 10 分钟调度，pytest +7 = 46 全绿）；前后端 Dockerfile（standalone）+ docker-compose 六服务（caddy/api/worker/beat/redis/web）；冒烟 E2E 通过：匿名档 summary 正确、上传 30.6KB → worker 转换 → 下载 6032B 真 JPEG（ffd8ff）；本片修复：pnpm 12 非交互环境 ERR_PNPM_IGNORED_BUILDS（Dockerfile 改 --ignore-scripts，unrs-resolver 的 postinstall 非必需）
+- 阶段：**实现阶段（切片 8 完成：压缩包打包/解压双向）**
+- 状态：切片 8 已跑通——服务端 `/api/archive/pack|extract` 同步端点（内存处理不落盘，防 zip bomb 三重上限+路径穿越拒绝，配额同口径）；前端 `lib/archive.ts` 零依赖手写 zip/tar.gz 读写（原生 DecompressionStream）；页面 `/archive` 本地优先+服务端回退+计次；首页入口；pytest +9 = 55 全绿；eslint/build 全绿；浏览器实测打包、ZIP 138 条目、TAR.GZ 107 条目全部本地完成
 - 本片修复：SQLite `BIGINT PRIMARY KEY` 非行id别名不自增（用 `BigInteger().with_variant(Integer,"sqlite")`）；`.env` FRONTEND_ORIGIN 与前端实际端口不一致 → CORS 拦截但服务端照记 200（易误判前端 bug）
 - 验证：已在 WSL2 Ubuntu（docker redis:7 容器）完成真实 broker 端到端验证——uvicorn 上传 → Celery 投递 → 独立 worker 进程消费 → running/succeeded → 下载 JPEG（魔数 ff d8 ff 正确）
 - 真实验证暴露并修复 3 处问题：① celery_app 缺 `include=["app.workers.convert_task"]`（worker 不注册任务，消息积压不执行）；② pillow / python-multipart 未在 pyproject 声明（本地靠 venv 遗留，CI 全新安装必失败）；③ tests/conftest.py 在设 env 前 import app（config 固化为默认值，测试污染真实 data/app.db）
@@ -23,8 +23,8 @@
 
 ## 下一步
 
-1. 切片 8：新转换类别——压缩包（fflate 本地）/ 文档（LibreOffice 服务端）/ 音视频（ffmpeg.wasm + 服务端）
-2. 运营向：登录态浏览器全链路人工验证（真实邮箱）、OG 标签/分享卡片
+1. 切片 9：新转换类别——文档（LibreOffice 服务端）/ 音视频（ffmpeg.wasm + 服务端）
+2. SEO：/archive 与打包解压落地页（如 zip-pack、unzip-online）进 sitemap
 3. 域名与上线：购买域名 → DNS 解析 → 服务器部署 compose 栈（SITE_ADDRESS 设域名走 Caddy 自动 HTTPS）
 
 ## 部署（Docker Compose，切片 7）
