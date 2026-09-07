@@ -18,6 +18,12 @@ from starlette.responses import FileResponse
 
 from app.api.deps import client_ip, current_user_id
 from app.core import config
+from app.core.doc_formats import (
+    DOC_INPUT_FORMATS,
+    DOC_OUTPUT_FORMATS,
+    DocFormat,
+    output_media_type,
+)
 from app.core.errors import ApiError
 from app.core.formats import (
     HEAD_LEN,
@@ -40,12 +46,23 @@ router = APIRouter(prefix="/api", tags=["convert"])
 
 CHUNK_SIZE = 1024 * 1024
 
+# 文档源扩展名白名单提示文案（与 core/doc_formats.py 注册表一致）
+_DOC_SOURCE_HINT = (
+    "仅支持 doc / docx / xls / xlsx / ppt / pptx /"
+    " odt / ods / odp / html / csv / txt（扩展名）"
+)
 
-def _validate_request(file: UploadFile, target: str) -> ImageFormat:
-    """请求参数与文件名预检：目标格式白名单 + 源扩展名白名单。"""
+
+def _validate_request(file: UploadFile, target: str) -> ImageFormat | DocFormat:
+    """请求参数与文件名预检：目标格式白名单 + 源扩展名白名单（文档/图片两分支）。"""
     target_ext = normalize_ext(target)
+    if target_ext in DOC_OUTPUT_FORMATS:
+        doc_source = DOC_INPUT_FORMATS.get(ext_of_filename(file.filename or ""))
+        if doc_source is None:
+            raise ApiError(415, _DOC_SOURCE_HINT)
+        return doc_source
     if target_ext not in OUTPUT_FORMATS:
-        raise ApiError(400, "仅支持输出 png / jpg / webp")
+        raise ApiError(400, "仅支持输出 png / jpg / webp / pdf")
     source = INPUT_FORMATS.get(ext_of_filename(file.filename or ""))
     if source is None:
         raise ApiError(415, "仅支持 png / jpg / webp / bmp / gif（扩展名）")
@@ -53,7 +70,11 @@ def _validate_request(file: UploadFile, target: str) -> ImageFormat:
 
 
 def _save_upload(
-    file: UploadFile, task_id: str, source: ImageFormat, head: bytes, limit: int
+    file: UploadFile,
+    task_id: str,
+    source: ImageFormat | DocFormat,
+    head: bytes,
+    limit: int,
 ) -> int:
     """流式落盘（限额内分块写入，超限即拒绝；魔数已在请求阶段预检）。"""
     path = config.TMP_DIR / f"{task_id}.{source.ext}"
@@ -70,6 +91,11 @@ def _save_upload(
         path.unlink(missing_ok=True)
         raise
     return size
+
+
+def _result_media_type(ext: str) -> str:
+    """按目标扩展名取结果文件 MIME（图片 / 文档双注册表）。"""
+    return media_type_of(ext) if ext in OUTPUT_FORMATS else output_media_type(ext)
 
 
 def _cleanup_task_files(task_id: str) -> None:
@@ -111,7 +137,14 @@ def create_conversion(
     file.file.seek(0)
     head = file.file.read(HEAD_LEN)
     if not source.matches(head):
-        raise ApiError(415, "文件内容与扩展名不符（魔数校验失败）")
+        # 文本类文档走编码弱校验，其余（图片/Office 二进制）走魔数校验
+        is_text = isinstance(source, DocFormat) and source.signatures is None
+        detail = (
+            "文件内容与扩展名不符（文本需 UTF-8 编码）"
+            if is_text
+            else "文件内容与扩展名不符（魔数校验失败）"
+        )
+        raise ApiError(415, detail)
     # 每日配额预检并扣减（超限 429，含重置时间文案）
     quota.consume(user_id, client_ip(request), upload_size)
     task = STORE.create(
@@ -154,7 +187,7 @@ def download_task(task_id: str, pass_key: str = "") -> FileResponse:
     stem = Path(task.source_name).stem
     return FileResponse(
         path=task.out_path,
-        media_type=media_type_of(task.target_format),
+        media_type=_result_media_type(task.target_format),
         filename=f"{stem}.{task.target_format}",
         background=BackgroundTask(_cleanup_task_files, task.id),
     )

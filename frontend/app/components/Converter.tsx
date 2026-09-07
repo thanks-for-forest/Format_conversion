@@ -1,10 +1,12 @@
 "use client";
 
 // 转换器主体：选择文件 → 本地优先转换 → 服务端兜底；首页与 SEO 落地页共用。
+// 类别感知（切片 10a）：图片互转（Canvas 本地 / 服务端兜底）与
+// 文档 → PDF（服务端 LibreOffice）、md → html（本地渲染）。
 // 传入 lockedSource/lockedTarget 时锁定格式（落地页场景）：隐藏目标下拉、
 // 仅接受该来源格式、不自动切换目标。
 
-import { useState, type ChangeEvent, type DragEvent } from "react";
+import { useState } from "react";
 import {
   buildDownloadUrl,
   createConversion,
@@ -16,20 +18,26 @@ import {
 import { canConvertLocally, convertLocally } from "../lib/convert";
 import {
   ACCEPT_ALIAS,
-  SOURCE_EXTS,
-  TARGET_EXTS,
+  ALL_SOURCE_EXTS,
+  categoryOf,
+  targetOptionsFor,
   outputName,
   sourceExtOf,
 } from "../lib/formats";
 import ConvertResult from "./ConvertResult";
+import FileDrop from "./FileDrop";
 import QuotaHints from "./QuotaHints";
 
 const COPY = {
-  dropHint: "拖拽图片到此处，或点击选择",
-  targetLabel: "转换为：",
-  convert: "开始转换",
-  converting: "转换中…",
-  limitHint: "支持 png / jpg / jpeg / webp / bmp / gif",
+  image: {
+    dropHint: "拖拽图片到此处，或点击选择",
+    limitHint: "支持 png / jpg / jpeg / webp / bmp / gif",
+  },
+  doc: {
+    dropHint: "拖拽文档到此处，或点击选择",
+    limitHint:
+      "支持 doc / docx / xls / xlsx / ppt / pptx / odt / ods / odp / html / csv / txt / md",
+  },
 } as const;
 
 export default function Converter({
@@ -52,30 +60,33 @@ export default function Converter({
   const [downloadUrl, setDownloadUrl] = useState("");
   const [downloadName, setDownloadName] = useState("");
   const [pickError, setPickError] = useState("");
-  const [dragging, setDragging] = useState(false);
   const [pathUsed, setPathUsed] = useState<"local" | "server" | null>(null);
 
   const locked = Boolean(lockedSource && lockedTarget);
   const busy = phase === "converting";
   const sourceExt = file ? sourceExtOf(file.name) : "";
   const effectiveTarget = lockedTarget ?? target;
-  const targetOptions = TARGET_EXTS.filter(
-    (t) => t !== (lockedSource ?? sourceExt)
-  );
+  // 目标下拉：锁定页不显示；首页按当前源格式的类别给出可选项
+  const targetOptions = locked
+    ? []
+    : targetOptionsFor(lockedSource ?? sourceExt);
   // 预检（双保险之一，后端 429 兜底）：次数用尽或文件超单文件上限时禁用
   const quotaExhausted = !!quota && quota.used.count >= quota.limit.count;
   const oversize = !!file && !!quota && file.size > quota.limit.max_upload_bytes;
   const blocked = quotaExhausted || oversize;
   const accept = lockedSource
     ? (ACCEPT_ALIAS[lockedSource] ?? `.${lockedSource}`)
-    : SOURCE_EXTS.map((e) => ACCEPT_ALIAS[e] ?? `.${e}`).join(",");
+    : ALL_SOURCE_EXTS.map((e) => ACCEPT_ALIAS[e] ?? `.${e}`).join(",");
+  const copy = COPY[categoryOf(lockedSource ?? sourceExt)];
+  // md → html 仅本地渲染，服务端不支持该组合，失败时直接报错
+  const localOnly = sourceExt === "md" && effectiveTarget === "html";
 
   async function handleConvert() {
     if (!file) return;
     setPhase("converting");
     setMessage("");
     try {
-      // 本地优先：浏览器 Canvas 转换，文件不上传；失败自动回退服务端
+      // 本地优先：浏览器内完成，文件不上传；失败自动回退服务端（md→html 除外）
       if (canConvertLocally(sourceExt, effectiveTarget, file.size)) {
         try {
           const blob = await convertLocally(file, effectiveTarget);
@@ -88,6 +99,9 @@ export default function Converter({
             .catch(() => {});
           return;
         } catch {
+          if (localOnly) {
+            throw new Error("本地转换失败，请检查文件编码（需 UTF-8）");
+          }
           setPathUsed(null);
         }
       }
@@ -125,65 +139,36 @@ export default function Converter({
       return;
     }
     const ext = sourceExtOf(picked.name);
-    const allowed = lockedSource ? [lockedSource] : SOURCE_EXTS;
+    const allowed = lockedSource ? [lockedSource] : ALL_SOURCE_EXTS;
     if (!allowed.includes(ext)) {
       setFile(null);
       resetResult();
       setPickError(
         lockedSource
           ? `本页仅支持 ${lockedSource.toUpperCase()} 源文件，收到：${picked.name}`
-          : `仅支持 ${SOURCE_EXTS.join(" / ")}，收到：${picked.name}`
+          : `仅支持 ${ALL_SOURCE_EXTS.join(" / ")}，收到：${picked.name}`
       );
       return;
     }
     setFile(picked);
     setPickError("");
     resetResult();
-    if (!locked && target === ext) {
-      setTarget(TARGET_EXTS.find((t) => t !== ext) ?? "jpg");
+    if (!locked) {
+      const opts = targetOptionsFor(ext);
+      if (!opts.includes(target)) {
+        setTarget(opts[0]);
+      }
     }
-  }
-
-  function handlePick(e: ChangeEvent<HTMLInputElement>) {
-    applyPickedFile(e.target.files?.[0] ?? null);
-  }
-
-  function handleDrop(e: DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    setDragging(false);
-    if (busy) return;
-    applyPickedFile(e.dataTransfer.files?.[0] ?? null);
   }
 
   return (
     <>
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          if (!busy) setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={handleDrop}
-        style={{
-          margin: "24px 0 8px",
-          padding: 16,
-          border: dragging ? "2px dashed #2563eb" : "2px dashed #d1d5db",
-          borderRadius: 8,
-          background: dragging ? "#eff6ff" : "#f9fafb",
-          textAlign: "center",
-        }}
-      >
-        <input
-          type="file"
-          accept={accept}
-          onChange={handlePick}
-          disabled={busy}
-          style={{ display: "block", margin: "0 auto" }}
-        />
-        <p style={{ fontSize: 12, color: "#9ca3af", margin: "8px 0 0" }}>
-          {COPY.dropHint}
-        </p>
-      </div>
+      <FileDrop
+        accept={accept}
+        hint={copy.dropHint}
+        busy={busy}
+        onPick={applyPickedFile}
+      />
       {file && (
         <p style={{ fontSize: 14, margin: "0 0 8px", color: "#111827" }}>
           已选：{file.name}
@@ -195,13 +180,13 @@ export default function Converter({
       <p style={{ fontSize: 12, color: "#9ca3af" }}>
         {lockedSource
           ? `本页仅支持 ${lockedSource.toUpperCase()} 源文件`
-          : COPY.limitHint}
+          : copy.limitHint}
       </p>
 
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        {!locked && (
+        {!locked && targetOptions.length > 0 && (
           <label style={{ fontSize: 14, color: "#374151" }}>
-            {COPY.targetLabel}
+            转换为：
             <select
               value={target}
               onChange={(e) => {
@@ -237,7 +222,7 @@ export default function Converter({
             cursor: !file || busy || blocked ? "not-allowed" : "pointer",
           }}
         >
-          {busy ? COPY.converting : COPY.convert}
+          {busy ? "转换中…" : "开始转换"}
         </button>
       </div>
 

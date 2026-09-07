@@ -32,6 +32,13 @@ jobs:
       - name: 安装依赖
         run: pip install -e ".[dev]"
 
+      # 文档转换测试（切片 10a）需要真实 soffice；本地未装时对应用例自动跳过
+      - name: 安装 LibreOffice
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libreoffice-writer libreoffice-calc libreoffice-impress
+
       - name: Ruff Lint
         run: ruff check .
 

@@ -4,9 +4,10 @@
 
 ## 当前阶段
 
-- 阶段：**实现阶段（切片 9 完成：SEO 落地页扩展至压缩包）**
-- 状态：切片 9 已跑通——ArchivePanel 组件化（archive 页瘦身）；新落地页 `/convert/files-to-zip`（打包）与 `/convert/zip-to-files`（解压），generateMetadata + 步骤文案 + 双向互链；图片落地页补压缩包互链；sitemap 16 条；eslint/build 全绿；浏览器实测两页渲染、落地页解压计次生效、sitemap 含新页
-- 本片修复：SQLite `BIGINT PRIMARY KEY` 非行id别名不自增（用 `BigInteger().with_variant(Integer,"sqlite")`）；`.env` FRONTEND_ORIGIN 与前端实际端口不一致 → CORS 拦截但服务端照记 200（易误判前端 bug）
+- 阶段：**实现阶段（切片 10a 完成：文档 → PDF + MD → HTML）**
+- 状态：切片 10a 已跑通——后端文档注册表（12 进 1 出，魔数/UTF-8 双校验）+ soffice 子进程转换服务（独立 profile 禁宏禁外链、硬超时、以输出文件存在为成功判据）+ `/api/convert` 双类别路由；前端 category 感知 Converter + 本地 MD→HTML 渲染器 + 13 个新落地页（sitemap 16→29 条）+ 首页目标下拉按类别自适应；CI/Dockerfile 装 LibreOffice + 中文字体
+- 质量闸门：ruff/mypy/pytest 65 全过/eslint/next build 全绿
+- 浏览器验证：docx-to-pdf 与 md-to-html 落地页渲染、md→html 本地转换（blob 下载 + 计次）、**docx→PDF 服务端端到端**（上传→Celery worker→下载 %PDF 389KB→计次 0→1）、配额耗尽禁用+红字提示、首页 docx→PDF 下拉自适应、sitemap 29 条；过程中发现并修复「转义优先致 blockquote 失配」bug
 
 ## 安全审计（2026-09-07，standard 模式，10/10 维度覆盖）
 
@@ -36,7 +37,7 @@
 
 ## 下一步
 
-1. 切片 10：新转换类别——文档（LibreOffice 服务端）/ 音视频（ffmpeg.wasm + 服务端）
+1. 切片 10b：音视频类别（ffmpeg.wasm 本地 + ffmpeg 服务端；互转/提取音轨/压缩）
 2. 域名与上线：购买域名 → DNS 解析 → 服务器部署 compose 栈（SITE_ADDRESS 设域名走 Caddy 自动 HTTPS）
 
 ## 部署（Docker Compose，切片 7）
@@ -56,3 +57,4 @@
 - Worker：`cd backend && uv run celery -A app.workers.celery_app worker -P solo -l info`（Windows 需 `-P solo`，prefork 不支持）
 - 前端：`cd frontend && pnpm dev`（WSL grafana 占用 3000 时用 `$env:PORT="3100"`，后端同步设 `FRONTEND_ORIGIN=http://localhost:3100`）
 - 测试：需 Redis 在线（conftest 用 REDIS_URL/1 库；本地转发不稳可设 `TEST_REDIS_URL` 指向 WSL IP）
+- 文档转换：需本机 LibreOffice（默认路径自动探测，特殊安装位置设 `SOFFICE_PATH`；未装时文档真转测试自动跳过）

@@ -3,7 +3,7 @@ import { COMBOS } from "./lib/formats";
 import { SITE_URL } from "./lib/site";
 
 // sitemap.xml：构建期静态生成，覆盖首页、登录页、压缩包工具页与全部
-// 12 个图片 SEO 落地页（切片 9 扩展至 16 条）。
+// 25 个格式组合 SEO 落地页（图片 12 + 文档转 PDF 12 + MD 转 HTML，切片 10a 扩展至 29 条）。
 
 export const dynamic = "force-static";
 

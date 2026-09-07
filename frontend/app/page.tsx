@@ -4,7 +4,8 @@ import SiteFrame from "./components/SiteFrame";
 
 // 首页：通用转换器入口（格式自选）。转换逻辑在 components/Converter.tsx。
 
-const SUBTITLE = "本地优先 · 图片互转（png / jpg / webp / bmp / gif → png / jpg / webp）";
+const SUBTITLE =
+  "图片互转（png / jpg / webp / bmp / gif）· 文档转 PDF（docx / xlsx / pptx 等）· Markdown 转 HTML";
 
 export default function Home() {
   return (
