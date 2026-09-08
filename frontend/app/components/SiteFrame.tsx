@@ -65,38 +65,39 @@ export default function SiteFrame({
 
       <section
         style={{
-          position: "relative",
-          padding: "48px 16px 72px",
-          overflow: "hidden",
-          background: "var(--brand-soft)",
+          background: "linear-gradient(180deg, var(--brand-soft), var(--page-bg))",
+          padding: "40px 16px 64px",
         }}
       >
-        {/* hero 背景图（public/hero-bg.jpg）：白色渐变遮罩保证标题可读；首屏资源 priority 提升 LCP */}
-        <Image
-          src="/hero-bg.jpg"
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          style={{ objectFit: "cover", objectPosition: "center" }}
-        />
+        {/* 左文右图分栏：文字与插画互不遮挡；窄屏 flexWrap 自动堆叠（文上图下） */}
         <div
           style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,.82), rgba(255,255,255,.62) 60%, rgba(247,249,248,.92))",
-          }}
-        />
-        <div
-          style={{
-            position: "relative",
             maxWidth: "var(--maxw)",
             margin: "0 auto",
-            textAlign: "center",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 36,
+            flexWrap: "wrap",
           }}
         >
-          {heading}
+          <div style={{ flex: "1 1 420px", textAlign: "center" }}>{heading}</div>
+          <div style={{ flex: "0 1 400px", minWidth: 280 }}>
+            <Image
+              src="/hero-bg.jpg"
+              alt="文件格式转换插画：女孩在云端的笔记本前处理 PDF、视频、音频与图片文件"
+              width={2848}
+              height={1600}
+              priority
+              sizes="(max-width: 800px) 100vw, 40vw"
+              style={{
+                width: "100%",
+                height: "auto",
+                borderRadius: "var(--r-md)",
+                boxShadow: "var(--shadow-card)",
+              }}
+            />
+          </div>
         </div>
       </section>
 
@@ -104,7 +105,7 @@ export default function SiteFrame({
         <div
           style={{
             maxWidth: "var(--maxw)",
-            margin: "-40px auto 0",
+            margin: "-28px auto 0",
             background: "var(--card-bg)",
             borderRadius: "var(--r-lg)",
             boxShadow: "var(--shadow-card)",
