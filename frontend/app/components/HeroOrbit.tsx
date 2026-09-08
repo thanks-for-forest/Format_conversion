@@ -49,7 +49,7 @@ export default function HeroOrbit() {
       <div
         style={{
           position: "absolute",
-          inset: "16% 17%",
+          inset: "22% 24%",
           borderRadius: "var(--r-md)",
           overflow: "hidden",
           boxShadow: "var(--shadow-card)",
@@ -68,7 +68,7 @@ export default function HeroOrbit() {
       <div className="orbit-spin" style={{ position: "absolute", inset: 0 }}>
         {FORMATS.map((f, i) => {
           const angle = (i / FORMATS.length) * Math.PI * 2 - Math.PI / 2;
-          const r = 45; // 圆形轨道半径（容器百分比，正方容器下 x/y 像素一致）
+          const r = 49; // 圆形轨道半径（正方容器下 x/y 像素一致；49% 确保徽章公转全程不接触插画，含对角方向）
           const x = 50 + r * Math.cos(angle);
           const y = 50 + r * Math.sin(angle);
           return (
