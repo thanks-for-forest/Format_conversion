@@ -12,7 +12,7 @@ const HIGHLIGHTS = [
   {
     icon: "🖼️",
     title: "图片互转",
-    desc: "PNG / JPG / WebP / BMP 在浏览器本地完成，文件不出设备；转换后可拖动滑块对比画质。",
+    desc: "PNG / JPG / WebP / BMP / GIF 在浏览器本地完成，文件不出设备；转换后可拖动滑块对比画质。",
   },
   {
     icon: "📄",
@@ -71,12 +71,12 @@ export default function Home() {
               免费 · 无需注册
             </p>
             <h2 style={{ fontSize: 28, lineHeight: 1.35, color: "var(--ink)", margin: "0 0 12px" }}>
-              28 种格式、80+ 种转换组合，一个页面全搞定
+              29 种格式、80+ 种转换组合，一个页面全搞定
             </h2>
             <p style={{ fontSize: 14, lineHeight: 1.8, color: "var(--body-color)", margin: "0 auto 32px", maxWidth: 560 }}>
               为设计师、开发者、学生和办公人群打造的免费在线转换工具——
-              图片转换在浏览器本地完成，服务端转换的文件处理完即删，
-              匿名即可使用，登录后每日额度更高。
+              图片转换在浏览器本地完成，服务端转换的文件在开始下载时即删
+              （未下载的 1 小时后自动清除），匿名即可使用，登录后每日额度更高。
             </p>
             <p style={{ fontSize: 12, color: "var(--muted)", margin: "-22px 0 24px" }}>
               将光标移到卡片上查看详情
