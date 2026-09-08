@@ -1,8 +1,9 @@
 "use client";
 
-// hero 环绕舞台（切片 12h）：格式徽章沿椭圆轨道均匀环绕中央插画，
-// 呼应插画自身「文件图标环绕女孩」的构图。徽章位置按角度三角函数算出
-// 百分比坐标（响应式缩放），浮动动画错峰（globals.css 的 hero-float）。
+// hero 环绕舞台（切片 12i）：格式徽章沿椭圆轨道**持续公转**——
+// 轨道层 .orbit-spin 顺时针旋转，每枚徽章 .orbit-counter 反向自转抵消（文字保持水平），
+// 两动画严格同步（时长一致、delay 均为 0）。徽章的椭圆位置由 wrapper 的百分比定位给出，
+// 旋转带动 wrapper 绕容器中心公转。reduced-motion 下全部静止（徽章仍分布在椭圆上）。
 
 import Image from "next/image";
 
@@ -22,8 +23,7 @@ const FORMATS = [
 ] as const;
 
 const badgeStyle: React.CSSProperties = {
-  position: "absolute",
-  transform: "translate(-50%, -50%)",
+  display: "inline-block",
   fontSize: 12,
   fontWeight: 700,
   letterSpacing: 0.5,
@@ -34,7 +34,6 @@ const badgeStyle: React.CSSProperties = {
   padding: "4px 12px",
   boxShadow: "var(--shadow-card)",
   whiteSpace: "nowrap",
-  animation: "hero-float 5s ease-in-out infinite",
 };
 
 export default function HeroOrbit() {
@@ -46,7 +45,7 @@ export default function HeroOrbit() {
         aspectRatio: "10 / 9",
       }}
     >
-      {/* 中央插画（cover 聚焦主体：女孩 + 云 + 文件图标） */}
+      {/* 中央插画（不参与旋转；cover 聚焦主体：女孩 + 云 + 文件图标） */}
       <div
         style={{
           position: "absolute",
@@ -65,26 +64,29 @@ export default function HeroOrbit() {
           style={{ objectFit: "cover" }}
         />
       </div>
-      {/* 格式徽章：椭圆轨道均分（从顶部起顺时针），错峰浮动 */}
-      {FORMATS.map((f, i) => {
-        const angle = (i / FORMATS.length) * Math.PI * 2 - Math.PI / 2;
-        const x = 50 + 47 * Math.cos(angle);
-        const y = 50 + 45 * Math.sin(angle);
-        return (
-          <span
-            key={f}
-            className="hero-orbit-badge"
-            style={{
-              ...badgeStyle,
-              left: `${x}%`,
-              top: `${y}%`,
-              animationDelay: `${i * 0.3}s`,
-            }}
-          >
-            {f}
-          </span>
-        );
-      })}
+      {/* 公转轨道层：旋转带动全部徽章绕中心转 */}
+      <div className="orbit-spin" style={{ position: "absolute", inset: 0 }}>
+        {FORMATS.map((f, i) => {
+          const angle = (i / FORMATS.length) * Math.PI * 2 - Math.PI / 2;
+          const x = 50 + 47 * Math.cos(angle);
+          const y = 50 + 45 * Math.sin(angle);
+          return (
+            <div
+              key={f}
+              style={{
+                position: "absolute",
+                left: `${x}%`,
+                top: `${y}%`,
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              <span className="orbit-counter" style={badgeStyle}>
+                {f}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

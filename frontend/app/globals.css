@@ -63,18 +63,25 @@ body {
   transform: scale(0.98);
 }
 
-/* hero 环绕徽章浮动动画（配合 translate(-50%,-50%) 定位，向上浮 6px 回落） */
-@keyframes hero-float {
-  0%,
-  100% {
-    transform: translate(-50%, -50%);
+/* hero 环绕轨道旋转：容器层顺时针公转，徽章层反向自转抵消（文字始终保持水平）。
+   两动画时长/时间函数必须一致，且徽章的 counter 动画 delay 不可错峰（需与容器同步） */
+@keyframes orbit-spin {
+  from {
+    transform: rotate(0deg);
   }
-  50% {
-    transform: translate(-50%, calc(-50% - 6px));
+  to {
+    transform: rotate(360deg);
   }
 }
+.orbit-spin {
+  animation: orbit-spin 60s linear infinite;
+}
+.orbit-counter {
+  animation: orbit-spin 60s linear infinite reverse;
+}
 @media (prefers-reduced-motion: reduce) {
-  .hero-orbit-badge {
+  .orbit-spin,
+  .orbit-counter {
     animation: none !important;
   }
 }
