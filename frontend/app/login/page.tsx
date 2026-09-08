@@ -28,10 +28,11 @@ const inputStyle: React.CSSProperties = {
 
 const buttonStyle = (disabled: boolean): React.CSSProperties => ({
   padding: "10px 24px",
-  borderRadius: 8,
+  borderRadius: "var(--r-md)",
   border: "none",
-  background: disabled ? "#c7cdd4" : "#2563eb",
+  background: disabled ? "var(--disabled)" : "var(--brand)",
   color: "#fff",
+  fontWeight: 600,
   cursor: disabled ? "not-allowed" : "pointer",
 });
 
@@ -78,14 +79,16 @@ export default function LoginPage() {
     <main
       style={{
         maxWidth: 420,
-        margin: "80px auto",
+        margin: "48px auto",
         padding: 32,
-        border: "1px solid #e5e7eb",
-        borderRadius: 16,
-        fontFamily: "sans-serif",
+        background: "var(--card-bg)",
+        border: "1px solid var(--line)",
+        borderRadius: "var(--r-lg)",
+        boxShadow: "var(--shadow-card)",
+        fontFamily: "var(--font)",
       }}
     >
-      <h1 style={{ fontSize: 22, margin: "0 0 16px" }}>{COPY.title}</h1>
+      <h1 style={{ fontSize: 24, margin: "0 0 16px", color: "var(--ink)" }}>{COPY.title}</h1>
 
       <form onSubmit={handleSend}>
         <label style={{ display: "block", fontSize: 14, marginBottom: 8 }}>
@@ -129,18 +132,18 @@ export default function LoginPage() {
             type="button"
             onClick={() => handleSend({ preventDefault() {} } as FormEvent)}
             disabled={sending}
-            style={{ ...buttonStyle(sending), background: "none", color: "#2563eb", marginLeft: 12 }}
+            style={{ ...buttonStyle(sending), background: "none", color: "var(--brand)", marginLeft: 12 }}
           >
             {COPY.resend}
           </button>
         </form>
       )}
 
-      {message && <p style={{ color: "#059669", fontSize: 13 }}>{message}</p>}
-      {error && <p style={{ color: "#dc2626", fontSize: 13 }}>{error}</p>}
+      {message && <p style={{ color: "var(--brand)", fontSize: 13 }}>{message}</p>}
+      {error && <p style={{ color: "var(--danger)", fontSize: 13 }}>{error}</p>}
 
-      <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 16 }}>{COPY.devHint}</p>
-      <Link href="/" style={{ fontSize: 13, color: "#2563eb" }}>
+      <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 16 }}>{COPY.devHint}</p>
+      <Link href="/" style={{ fontSize: 13, color: "var(--brand)", fontWeight: 600 }}>
         {COPY.backHome}
       </Link>
     </main>

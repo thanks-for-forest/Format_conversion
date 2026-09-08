@@ -48,10 +48,10 @@ export default function ConvertResult({
           ? ` · 减少 ${Math.round((1 - outSize / inSize) * 100)}%`
           : ` · 增大 ${Math.round((outSize / inSize - 1) * 100)}%`
         : "";
-    // 对比滑块仅图片互转组合有意义（文档/音视频无并排视觉可比性）
+    // 对比滑块仅在「无损/可能无损源 → 有损目标（jpg/webp）」显示：画质疑虑的真实来源；
+    // 目标为 png（无损）时转换像素级一致，滑块拖动无变化，不显示（避免困惑）
     const IMG_IN = ["png", "jpg", "webp", "bmp", "gif"];
-    const IMG_OUT = ["jpg", "png", "webp"];
-    const comparable = IMG_IN.includes(sourceExt) && IMG_OUT.includes(target);
+    const comparable = IMG_IN.includes(sourceExt) && (target === "jpg" || target === "webp");
     return (
       <div style={{ marginTop: 24 }}>
         <p style={{ color: "var(--brand)", fontWeight: 600 }}>{COPY.done}</p>

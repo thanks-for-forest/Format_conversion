@@ -24,12 +24,12 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
         display: "flex",
         justifyContent: "space-between",
         padding: "10px 0",
-        borderBottom: "1px solid #f3f4f6",
+        borderBottom: "1px solid var(--line)",
         fontSize: 14,
       }}
     >
-      <span style={{ color: "#6b7280" }}>{label}</span>
-      <span style={{ color: "#111827" }}>{children}</span>
+      <span style={{ color: "var(--muted)" }}>{label}</span>
+      <span style={{ color: "var(--ink)" }}>{children}</span>
     </div>
   );
 }
@@ -37,13 +37,13 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 function Bar({ used, limit }: { used: number; limit: number }) {
   const ratio = Math.min(1, used / limit);
   return (
-    <div style={{ height: 6, background: "#f3f4f6", borderRadius: 3, marginTop: 6 }}>
+    <div style={{ height: 6, background: "var(--page-bg)", borderRadius: 3, marginTop: 6 }}>
       <div
         style={{
           width: pct(used, limit),
           height: "100%",
           borderRadius: 3,
-          background: ratio >= 1 ? "#dc2626" : "#2563eb",
+          background: ratio >= 1 ? "var(--danger)" : "var(--brand)",
         }}
       />
     </div>
@@ -62,10 +62,10 @@ function UsageRow({
   limit: number;
 }) {
   return (
-    <div style={{ padding: "10px 0", borderBottom: "1px solid #f3f4f6" }}>
+    <div style={{ padding: "10px 0", borderBottom: "1px solid var(--line)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
-        <span style={{ color: "#6b7280" }}>{label}</span>
-        <span style={{ color: "#111827" }}>{usedText}</span>
+        <span style={{ color: "var(--muted)" }}>{label}</span>
+        <span style={{ color: "var(--ink)" }}>{usedText}</span>
       </div>
       <Bar used={used} limit={limit} />
     </div>
@@ -110,38 +110,41 @@ export default function AccountPage() {
   return (
     <main
       style={{
-        maxWidth: 520,
-        margin: "80px auto",
+        maxWidth: 640,
+        margin: "48px auto",
         padding: 32,
-        border: "1px solid #e5e7eb",
-        borderRadius: 16,
-        fontFamily: "sans-serif",
+        background: "var(--card-bg)",
+        border: "1px solid var(--line)",
+        borderRadius: "var(--r-lg)",
+        boxShadow: "var(--shadow-card)",
+        fontFamily: "var(--font)",
       }}
     >
-      <h1 style={{ fontSize: 24, margin: 0 }}>我的账户</h1>
+      <h1 style={{ fontSize: 28, margin: 0, color: "var(--ink)" }}>我的账户</h1>
 
       {!ready ? (
-        <p style={{ color: "#9ca3af" }}>加载中…</p>
+        <p style={{ color: "var(--muted)" }}>加载中…</p>
       ) : user ? (
         <>
-          <p style={{ color: "#374151" }}>
+          <p style={{ color: "var(--body-color)" }}>
             登录邮箱：<strong>{user.email}</strong>
           </p>
           {quota && <QuotaPanel quota={quota} />}
           <p style={{ marginTop: 20 }}>
-            <Link href="/" style={{ color: "#2563eb" }}>
+            <Link href="/" style={{ color: "var(--brand)", fontWeight: 600 }}>
               返回转换
             </Link>
-            <span style={{ margin: "0 8px", color: "#d1d5db" }}>|</span>
+            <span style={{ margin: "0 8px", color: "var(--line)" }}>|</span>
             <button
               onClick={handleLogout}
               style={{
                 border: "none",
                 background: "none",
-                color: "#2563eb",
+                color: "var(--brand)",
                 cursor: "pointer",
                 padding: 0,
                 fontSize: 14,
+                fontWeight: 600,
               }}
             >
               退出登录
@@ -150,20 +153,20 @@ export default function AccountPage() {
         </>
       ) : (
         <>
-          <p style={{ color: "#374151" }}>
+          <p style={{ color: "var(--body-color)" }}>
             你当前以匿名身份使用，配额较低（每日 5 次、单文件 50MB）。
           </p>
           {quota && <QuotaPanel quota={quota} />}
           <p style={{ marginTop: 20 }}>
-            <Link href="/login" style={{ color: "#2563eb" }}>
+            <Link href="/login" style={{ color: "var(--brand)", fontWeight: 600 }}>
               邮箱验证码登录
             </Link>
-            <span style={{ margin: "0 8px", color: "#d1d5db" }}>|</span>
-            <Link href="/" style={{ color: "#2563eb" }}>
+            <span style={{ margin: "0 8px", color: "var(--line)" }}>|</span>
+            <Link href="/" style={{ color: "var(--brand)", fontWeight: 600 }}>
               返回转换
             </Link>
           </p>
-          <p style={{ fontSize: 13, color: "#9ca3af" }}>
+          <p style={{ fontSize: 13, color: "var(--muted)" }}>
             登录后每日 50 次、单文件 200MB、服务端流量 2GB。
           </p>
         </>

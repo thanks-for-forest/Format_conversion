@@ -195,7 +195,7 @@ export default function Converter({
         />
       )}
       {pickError && (
-        <p style={{ margin: "0 0 8px", color: "#dc2626" }}>{pickError}</p>
+        <p style={{ margin: "0 0 8px", color: "var(--danger)" }}>{pickError}</p>
       )}
 
       {picked.length === 1 && (

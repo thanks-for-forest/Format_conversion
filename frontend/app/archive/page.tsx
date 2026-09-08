@@ -6,16 +6,18 @@ export default function ArchivePage() {
   return (
     <main
       style={{
-        maxWidth: 520,
-        margin: "80px auto",
+        maxWidth: 640,
+        margin: "48px auto",
         padding: 32,
-        border: "1px solid #e5e7eb",
-        borderRadius: 16,
-        fontFamily: "sans-serif",
+        background: "var(--card-bg)",
+        border: "1px solid var(--line)",
+        borderRadius: "var(--r-lg)",
+        boxShadow: "var(--shadow-card)",
+        fontFamily: "var(--font)",
       }}
     >
-      <h1 style={{ fontSize: 24, margin: 0 }}>压缩包打包 / 解压</h1>
-      <p style={{ color: "#6b7280" }}>
+      <h1 style={{ fontSize: 28, margin: 0, color: "var(--ink)" }}>压缩包打包 / 解压</h1>
+      <p style={{ color: "var(--body-color)" }}>
         多个文件打包成 ZIP；或解压 ZIP / TAR.GZ。25MB 内浏览器本地完成，文件不上传。
       </p>
       <ArchivePanel />
