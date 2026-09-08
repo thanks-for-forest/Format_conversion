@@ -68,6 +68,22 @@ export default function FileDrop({
           cursor: busy ? "wait" : "pointer",
         }}
       />
+      <svg
+        width="28"
+        height="28"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="var(--brand)"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ display: "block", margin: "0 auto 10px" }}
+        aria-hidden
+      >
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="17 8 12 3 7 8" />
+        <line x1="12" y1="3" x2="12" y2="15" />
+      </svg>
       <strong style={{ display: "block", fontSize: 16, color: "var(--ink)", marginBottom: 6 }}>
         拖拽文件到此处，或点击选择
       </strong>

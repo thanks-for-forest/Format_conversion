@@ -131,6 +131,7 @@ export default function BatchQueue({
         <button
           onClick={handleStart}
           disabled={running || blocked}
+          className="btn-primary"
           style={{
             padding: "10px 24px",
             borderRadius: "var(--r-md)",

@@ -161,6 +161,7 @@ export default function SingleConverter({
         <button
           onClick={handleConvert}
           disabled={busy || blocked}
+          className="btn-primary"
           style={{
             padding: "10px 24px",
             borderRadius: "var(--r-md)",

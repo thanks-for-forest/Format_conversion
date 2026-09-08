@@ -52,6 +52,17 @@ body {
   margin: 0;
 }
 
+/* 主按钮交互态（内联样式无法表达 :hover/:active，统一走此类） */
+.btn-primary {
+  transition: background 0.15s, transform 0.1s;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--brand-hover);
+}
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
 a {
   color: inherit;
   text-decoration: none;

@@ -75,7 +75,7 @@ export default function FilePreviewModal({
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0,0,0,.6)",
+        background: "rgba(18,20,29,.45)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
