@@ -1,0 +1,121 @@
+"use client";
+
+// 已选文件清单（累积选择）：文件名 + 大小 + 单项移除 + 清空。
+// 只读展示由上层状态驱动；转换运行中上层会禁用移除/清空。
+
+// 文件大小展示（清单用）
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export default function PickedFiles({
+  files,
+  busy,
+  onRemove,
+  onClear,
+}: {
+  files: File[];
+  busy: boolean;
+  onRemove: (idx: number) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div style={{ margin: "0 0 8px" }}>
+      <p
+        style={{
+          fontSize: 14,
+          margin: "0 0 4px",
+          color: "#111827",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <span>
+          已选 {files.length} 个文件
+          {files.length > 1 ? "（批量模式）" : ""}
+        </span>
+        {!busy && (
+          <button
+            onClick={onClear}
+            style={{
+              border: "none",
+              background: "none",
+              color: "#9ca3af",
+              fontSize: 12,
+              cursor: "pointer",
+              textDecoration: "underline",
+            }}
+          >
+            清空
+          </button>
+        )}
+      </p>
+      <ul
+        style={{
+          listStyle: "none",
+          margin: 0,
+          padding: "4px 8px",
+          fontSize: 12,
+          color: "#374151",
+          background: "#f9fafb",
+          borderRadius: 8,
+          maxHeight: 120,
+          overflowY: "auto",
+        }}
+      >
+        {files.map((f, i) => (
+          <li
+            key={`${f.name}-${i}`}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 8,
+              padding: "2px 0",
+            }}
+          >
+            <span
+              style={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+              title={f.name}
+            >
+              {f.name}
+            </span>
+            <span
+              style={{
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <span style={{ color: "#9ca3af" }}>{formatSize(f.size)}</span>
+              {!busy && (
+                <button
+                  onClick={() => onRemove(i)}
+                  title="移除该文件"
+                  style={{
+                    border: "none",
+                    background: "none",
+                    color: "#dc2626",
+                    fontSize: 13,
+                    lineHeight: 1,
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                >
+                  ×
+                </button>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
