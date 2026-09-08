@@ -4,11 +4,11 @@
 
 ## 当前阶段
 
-- 阶段：**实现阶段（切片 10e 完成：视频互转 + 提取音轨）——四类转换矩阵补齐**
-- 状态：切片 10e 已跑通——后端视频注册表（mp4/mov/mkv/webm/avi，魔数 ftyp/EBML/RIFF+AVI）+ video_service（按目标选编码器：x264 veryfast/webm VP8/avi mpeg4；VIDEO_FFMPEG_TIMEOUT_SEC=900）+ **提取音轨**（视频→mp3 复用音频链路 -vn）+ api 校验重构为**按源类别**（415/400 语义修正）+ worker 按源类别优先路由；前端 25 个视频组合落地页（组合页 55→80，sitemap 84 条）
-- 质量闸门：ruff/mypy/pytest（+4 视频真转全过，全量 77 过）/eslint/next build（80 组合页预渲染）全绿
-- 浏览器验证：mp4-to-webm / mp4-to-mp3 落地页渲染与互链、mp4→webm 真转码、mp4→mp3 提取音轨、计次正常
-- 本片教训：celery worker 不占业务端口，重启验证时残留旧 worker 会抢任务（DuplicateNodenameWarning 是信号）——按命令行全量清进程，worker 加 -n 唯一名；api 校验语义修正连带 2 个旧断言更新
+- 阶段：**实现阶段（切片 10d 完成：内容审核骨架）——转换功能全就绪，待上线动作**
+- 状态：切片 10d 已跑通——`services/moderation.py` 审核骨架（enabled 判定 / `_call_provider` 占位 / fail-closed 451）+ `/api/convert` 落盘后投递前接入（违规删文件 + mark_failed，配额已扣不退）+ config 补 `MODERATION_API_KEY/URL` 定义（原孤儿配置）+ KEY 空 = 未启用 + 启动 WARNING；**服务商接入后置**（PRD 3.6 已标注降级），图片优先
+- 质量闸门：ruff/mypy/pytest（+5 审核用例，全量 82 过）全绿
+- 浏览器回归：默认未启用时图片转换无感（本地转换正常）
+- 本片发现：`.env.example` 的审核变量从未进 config.py（孤儿配置，配了也不生效）——已补定义并写明启用语义（启用即 fail-closed 全量拒绝，服务商接入前勿配）
 
 ## 安全审计（2026-09-07，standard 模式，10/10 维度覆盖）
 
@@ -38,9 +38,8 @@
 
 ## 下一步
 
-1. 切片 10d：内容安全审核（PRD 合规硬门槛，fail-closed；需先定审核服务商）——公开上线前必须完成
-2. 上线：域名购买 → DNS → 服务器部署 compose 栈（生产清单：ENV=production / 强 SECRET_KEY / 域名 HTTPS）
-3. 候选迭代：ffmpeg.wasm 本地小文件音视频转换；i18n（zh/en）建议降级或后置（80 组合页文案抽取量大）
+1. 上线：域名购买 → DNS → 服务器部署 compose 栈（生产清单：ENV=production / 强 SECRET_KEY / 域名 HTTPS / 审核接入评估）
+2. 候选迭代：内容审核真服务商接入（阿里云内容安全，图片优先）；ffmpeg.wasm 本地小文件音视频转换；i18n（zh/en）建议降级或后置（80 组合页文案抽取量大）
 
 ## 部署（Docker Compose，切片 7）
 

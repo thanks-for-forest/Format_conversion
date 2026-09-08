@@ -1,5 +1,6 @@
 """应用配置：从环境变量读取，提供默认值；自动加载项目根目录 .env。"""
 
+import logging
 import os
 from pathlib import Path
 
@@ -33,6 +34,11 @@ SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 MAIL_FROM = os.getenv("MAIL_FROM", "noreply@example.com")
 
+# ===== 内容安全审核（切片 10d 骨架） =====
+# 两变量均配置 = 启用（fail-closed）；KEY 为空 = 未启用（跳过 + 启动 WARNING）
+MODERATION_API_KEY = os.getenv("MODERATION_API_KEY", "")
+MODERATION_API_URL = os.getenv("MODERATION_API_URL", "")
+
 # ===== 配额（切片 5b，口径见 PRD 3.4） =====
 # 匿名：单文件 ≤50MB、5 次/天、100MB 流量/天；登录：≤200MB、50 次/天、2GB/天
 _MB = 1024 * 1024
@@ -63,3 +69,9 @@ TMP_DIR.mkdir(parents=True, exist_ok=True)
 # 生产环境兜底（审计 L1）：弱默认密钥直接拒绝启动，防止公开默认值伪造 JWT
 if ENV == "production" and SECRET_KEY == "dev-insecure-secret-change-me":
     raise RuntimeError("生产环境必须通过环境变量设置强 SECRET_KEY")
+
+# 内容审核（切片 10d）：未配置 = 未启用，显式提示避免误以为已有审核能力
+if not MODERATION_API_KEY:
+    logging.getLogger(__name__).warning(
+        "MODERATION_API_KEY 未配置：内容审核未启用（PRD 3.6），上线前请评估接入"
+    )

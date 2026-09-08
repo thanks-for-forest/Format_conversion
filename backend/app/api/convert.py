@@ -5,6 +5,7 @@
 切片 3b：投递 Celery 异步任务。
 切片 4a：表驱动多格式互转（五进三出），扩展名 + 魔数双重校验。
 切片 5b：分层单文件限额与每日配额（匿名 Redis / 登录 SQLite），429 兜底。
+切片 10d：内容安全审核（fail-closed，违规 451 且不计退次）。
 """
 
 import hmac
@@ -46,7 +47,7 @@ from app.core.video_formats import (
     VideoFormat,
 )
 from app.models.task import ConversionTask
-from app.services import quota
+from app.services import moderation, quota
 from app.services.task_store import STORE
 from app.workers.convert_task import run_conversion
 
@@ -185,6 +186,13 @@ def create_conversion(
     )
     in_size = _save_upload(file, task.id, source, head, limits.max_upload_bytes)
     STORE.set_in_size(task.id, in_size)
+    # 内容安全审核（切片 10d）：违规 → 删文件 + 451；配额已扣不退（视为滥用成本）
+    try:
+        moderation.check_file(task.in_path)
+    except ApiError:
+        task.in_path.unlink(missing_ok=True)
+        STORE.mark_failed(task.id, "文件未通过安全审核")
+        raise
     STORE.mark_queued(task.id)
     try:
         run_conversion.delay(task.id)
