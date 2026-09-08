@@ -1,6 +1,7 @@
 "use client";
 
-// 拖拽 / 点击选文件区：首页与落地页共用；accept 与提示文案由调用方按类别传入。
+// 拖拽 / 点击选文件区（支持多选）：首页与落地页共用；
+// accept 与提示文案由调用方按类别传入，多/单文件分支由调用方处理。
 
 import { useState, type DragEvent } from "react";
 
@@ -13,7 +14,7 @@ export default function FileDrop({
   accept: string;
   hint: string;
   busy: boolean;
-  onPick: (file: File | null) => void;
+  onPick: (files: File[]) => void;
 }) {
   const [dragging, setDragging] = useState(false);
 
@@ -21,7 +22,7 @@ export default function FileDrop({
     e.preventDefault();
     setDragging(false);
     if (busy) return;
-    onPick(e.dataTransfer.files?.[0] ?? null);
+    onPick(Array.from(e.dataTransfer.files));
   }
 
   return (
@@ -44,7 +45,8 @@ export default function FileDrop({
       <input
         type="file"
         accept={accept}
-        onChange={(e) => onPick(e.target.files?.[0] ?? null)}
+        multiple
+        onChange={(e) => onPick(Array.from(e.target.files ?? []))}
         disabled={busy}
         style={{ display: "block", margin: "0 auto" }}
       />

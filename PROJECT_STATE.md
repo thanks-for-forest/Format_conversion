@@ -4,11 +4,12 @@
 
 ## 当前阶段
 
-- 阶段：**实现阶段（切片 10b 完成：音频互转，服务端 ffmpeg）**
-- 状态：切片 10b 已跑通——后端音频注册表（mp3/wav/flac/aac/ogg/m4a 互转，魔数：ID3/MPEG 帧、RIFF+WAVE、fLaC、OggS、ftyp、ADTS）+ ffmpeg 子进程转换（-nostdin/-vn/按目标选编码器/硬超时/输出存在判成功；find_ffmpeg 含 winget 包目录 glob 兜底）+ worker/api 三类别路由（音频/文档/图片）；前端 30 个音频互转落地页（组合页 25→55，sitemap 59 条）+ 首页音频目标下拉；CI/Dockerfile 装 ffmpeg
-- 质量闸门：ruff/mypy/pytest（+9 音频全过，含真转）/eslint/next build（55 组合页预渲染）全绿
-- 浏览器验证：mp3-to-wav 落地页渲染与 60 条互链、mp3→wav 真转换端到端（worker 0.39s 成功 + sample-song.wav 下载 + 计次 0→1）
-- 本片修复/教训：改后端代码后运行中的 uvicorn/worker 必须重启（E2E 撞 400 老文案）；winget portable 包 PATH/Links 未生效，find_ffmpeg 加 Packages 目录 glob 兜底
+- 阶段：**实现阶段（切片 10c 完成：批量转换）**
+- 状态：切片 10c 已跑通——首页多选自适应（1 个文件原单文件流程、≥2 个同类文件进入批量队列），全类别批量（逐文件按自身类别路由本地/服务端）；批量队列逐个串行、429 中断整队、同格式跳过、单项失败不阻断；完成后一键打包 ZIP（复用切片 8 前端打包）。后端零改动（复用 /api/convert 与配额口径：N 文件 = N 次计数）
+- 结构：Converter 薄壳化（选择/校验/分发）+ SingleConverter（原状态机迁出）+ BatchQueue（队列 UI/打包）+ lib/batch.ts（runner）；api.ts 错误升级 ApiStatusError（带 HTTP 状态码）
+- 质量闸门：eslint/next build 全绿（后端无改动，pytest 基线不变）
+- 浏览器验证：3 图批量本地转 JPG（3 条下载链接 + batch-converted.zip 打包 + 计次 3/5）+ 单文件回归（docx→PDF 服务端正常，计次 4/5）
+- 本片教训：拆核心组件必须带单文件回归；「转换中禁换文件」防孤儿请求行为需显式保留（运行态上抛）；跨天 WSL 关机连锁（Redis 断连/转发失效）——keepalive 用长驻 wsl sleep infinity，Redis 连接可切 WSL IP 直连
 
 ## 安全审计（2026-09-07，standard 模式，10/10 维度覆盖）
 
@@ -38,8 +39,10 @@
 
 ## 下一步
 
-1. 切片 10c：视频互转 + 提取音轨（服务端 ffmpeg，CPU 重需独立超时/进度策略）；或 ffmpeg.wasm 本地小文件音频转换（需评估 CDN 依赖与跨域隔离头）
-2. 域名与上线：购买域名 → DNS 解析 → 服务器部署 compose 栈（SITE_ADDRESS 设域名走 Caddy 自动 HTTPS）
+1. 切片 10d：内容安全审核（PRD 合规硬门槛，fail-closed；需先定审核服务商）——公开上线前必须完成
+2. 切片 10e：视频互转 + 提取音轨（服务端 ffmpeg，CPU 重需独立超时/进度策略）；ffmpeg.wasm 本地另评估
+3. 上线：域名购买 → DNS → 服务器部署 compose 栈（生产清单：ENV=production / 强 SECRET_KEY / 域名 HTTPS）
+4. i18n（zh/en）建议降级或后置（55+ 落地页文案抽取工作量大）
 
 ## 部署（Docker Compose，切片 7）
 

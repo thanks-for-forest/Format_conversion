@@ -1,48 +1,15 @@
 "use client";
 
-// 转换器主体：选择文件 → 本地优先转换 → 服务端兜底；首页与 SEO 落地页共用。
-// 类别感知（切片 10a）：图片互转（Canvas 本地 / 服务端兜底）与
-// 文档 → PDF（服务端 LibreOffice）、md → html（本地渲染）。
-// 传入 lockedSource/lockedTarget 时锁定格式（落地页场景）：隐藏目标下拉、
-// 仅接受该来源格式、不自动切换目标。
+// 转换器入口薄壳（切片 10c）：多选自适应——选 1 个文件走 SingleConverter，
+// 选 ≥2 个同类文件进入 BatchQueue 批量队列。文件选择/类别校验/目标状态在此，
+// 转换执行与结果展示在子组件。落地页 locked 模式同样支持批量（同源格式）。
 
 import { useState } from "react";
-import {
-  buildDownloadUrl,
-  createConversion,
-  pollUntilDone,
-  reportLocalCount,
-  type QuotaSummary,
-  type TaskInfo,
-} from "../lib/api";
-import { canConvertLocally, convertLocally } from "../lib/convert";
-import {
-  ACCEPT_ALIAS,
-  ALL_SOURCE_EXTS,
-  categoryOf,
-  targetOptionsFor,
-  outputName,
-  sourceExtOf,
-} from "../lib/formats";
-import ConvertResult from "./ConvertResult";
+import type { QuotaSummary } from "../lib/api";
+import { ALL_SOURCE_EXTS, ACCEPT_ALIAS, categoryOf, targetOptionsFor, sourceExtOf } from "../lib/formats";
+import BatchQueue from "./BatchQueue";
 import FileDrop from "./FileDrop";
-import QuotaHints from "./QuotaHints";
-
-const COPY = {
-  image: {
-    dropHint: "拖拽图片到此处，或点击选择",
-    limitHint: "支持 png / jpg / jpeg / webp / bmp / gif",
-  },
-  doc: {
-    dropHint: "拖拽文档到此处，或点击选择",
-    limitHint:
-      "支持 doc / docx / xls / xlsx / ppt / pptx / odt / ods / odp / html / csv / txt / md",
-  },
-  audio: {
-    dropHint: "拖拽音频到此处，或点击选择",
-    limitHint: "支持 mp3 / wav / flac / aac / ogg / m4a",
-  },
-} as const;
+import SingleConverter from "./SingleConverter";
 
 export default function Converter({
   quota,
@@ -55,127 +22,95 @@ export default function Converter({
   lockedSource?: string;
   lockedTarget?: string;
 }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [target, setTarget] = useState(lockedTarget ?? "jpg");
-  const [phase, setPhase] = useState<"idle" | "converting" | "done" | "error">(
-    "idle"
-  );
-  const [message, setMessage] = useState("");
-  const [downloadUrl, setDownloadUrl] = useState("");
-  const [downloadName, setDownloadName] = useState("");
+  const [picked, setPicked] = useState<File[]>([]);
+  const [pickSeq, setPickSeq] = useState(0); // 变更即重建子组件，天然重置结果状态
   const [pickError, setPickError] = useState("");
-  const [pathUsed, setPathUsed] = useState<"local" | "server" | null>(null);
+  const [target, setTarget] = useState(lockedTarget ?? "jpg");
+  const [childBusy, setChildBusy] = useState(false); // 单/批转换运行态（禁换文件防孤儿请求）
 
   const locked = Boolean(lockedSource && lockedTarget);
-  const busy = phase === "converting";
-  const sourceExt = file ? sourceExtOf(file.name) : "";
-  const effectiveTarget = lockedTarget ?? target;
-  // 目标下拉：锁定页不显示；首页按当前源格式的类别给出可选项
-  const targetOptions = locked
-    ? []
-    : targetOptionsFor(lockedSource ?? sourceExt);
-  // 预检（双保险之一，后端 429 兜底）：次数用尽或文件超单文件上限时禁用
-  const quotaExhausted = !!quota && quota.used.count >= quota.limit.count;
-  const oversize = !!file && !!quota && file.size > quota.limit.max_upload_bytes;
-  const blocked = quotaExhausted || oversize;
   const accept = lockedSource
     ? (ACCEPT_ALIAS[lockedSource] ?? `.${lockedSource}`)
     : ALL_SOURCE_EXTS.map((e) => ACCEPT_ALIAS[e] ?? `.${e}`).join(",");
-  const copy = COPY[categoryOf(lockedSource ?? sourceExt)];
-  // md → html 仅本地渲染，服务端不支持该组合，失败时直接报错
-  const localOnly = sourceExt === "md" && effectiveTarget === "html";
+  const firstExt = picked.length > 0 ? sourceExtOf(picked[0].name) : "";
+  const targetOptions = locked && lockedTarget ? [lockedTarget] : targetOptionsFor(firstExt);
 
-  async function handleConvert() {
-    if (!file) return;
-    setPhase("converting");
-    setMessage("");
-    try {
-      // 本地优先：浏览器内完成，文件不上传；失败自动回退服务端（md→html 除外）
-      if (canConvertLocally(sourceExt, effectiveTarget, file.size)) {
-        try {
-          const blob = await convertLocally(file, effectiveTarget);
-          setPathUsed("local");
-          setDownloadUrl(URL.createObjectURL(blob));
-          setDownloadName(outputName(file.name, effectiveTarget));
-          setPhase("done");
-          reportLocalCount()
-            .then(reloadQuota) // 本地计次不计流量，失败不影响结果
-            .catch(() => {});
-          return;
-        } catch {
-          if (localOnly) {
-            throw new Error("本地转换失败，请检查文件编码（需 UTF-8）");
-          }
-          setPathUsed(null);
-        }
-      }
-      setPathUsed("server");
-      const created = await createConversion(file, effectiveTarget);
-      const info: TaskInfo = await pollUntilDone(created.task_id, created.pass_key);
-      if (info.status !== "succeeded") {
-        throw new Error(info.message || "转换失败");
-      }
-      setDownloadUrl(buildDownloadUrl(created.task_id, created.pass_key));
-      setDownloadName(outputName(file.name, effectiveTarget));
-      setPhase("done");
-      reloadQuota();
-    } catch (err) {
-      setMessage(err instanceof Error ? err.message : String(err));
-      setPhase("error");
-    }
-  }
-
-  function resetResult() {
-    setPhase("idle");
-    setMessage("");
-    setDownloadUrl((prev) => {
-      if (prev.startsWith("blob:")) URL.revokeObjectURL(prev);
-      return "";
-    });
-    setPathUsed(null);
-  }
-
-  function applyPickedFile(picked: File | null) {
-    if (!picked) {
-      setFile(null);
+  function applyPicked(fs: File[]) {
+    if (fs.length === 0) {
+      setPicked([]);
       setPickError("");
-      resetResult();
+      setPickSeq((n) => n + 1);
       return;
     }
-    const ext = sourceExtOf(picked.name);
-    const allowed = lockedSource ? [lockedSource] : ALL_SOURCE_EXTS;
-    if (!allowed.includes(ext)) {
-      setFile(null);
-      resetResult();
-      setPickError(
-        lockedSource
-          ? `本页仅支持 ${lockedSource.toUpperCase()} 源文件，收到：${picked.name}`
-          : `仅支持 ${ALL_SOURCE_EXTS.join(" / ")}，收到：${picked.name}`
-      );
-      return;
-    }
-    setFile(picked);
-    setPickError("");
-    resetResult();
-    if (!locked) {
-      const opts = targetOptionsFor(ext);
-      if (!opts.includes(target)) {
-        setTarget(opts[0]);
+    if (fs.length === 1) {
+      // 单文件：白名单校验（与既有行为一致）
+      const ext = sourceExtOf(fs[0].name);
+      const allowed = lockedSource ? [lockedSource] : ALL_SOURCE_EXTS;
+      if (!allowed.includes(ext)) {
+        setPicked([]);
+        setPickError(
+          lockedSource
+            ? `本页仅支持 ${lockedSource.toUpperCase()} 源文件，收到：${fs[0].name}`
+            : `仅支持 ${ALL_SOURCE_EXTS.join(" / ")}，收到：${fs[0].name}`
+        );
+        setPickSeq((n) => n + 1);
+        return;
+      }
+    } else {
+      // 批量：落地页须与锁定源一致；首页须同类且文档批不混 md（md 与 Office 路由不同）
+      const bad = lockedSource
+        ? fs.filter((f) => sourceExtOf(f.name) !== lockedSource)
+        : fs.filter((f) => categoryOf(sourceExtOf(f.name)) !== categoryOf(sourceExtOf(fs[0].name)));
+      const docMixed =
+        !lockedSource &&
+        categoryOf(sourceExtOf(fs[0].name)) === "doc" &&
+        fs.some((f) => sourceExtOf(f.name) === "md") &&
+        fs.some((f) => sourceExtOf(f.name) !== "md");
+      if (bad.length > 0 || docMixed) {
+        setPicked([]);
+        setPickError(
+          docMixed
+            ? "批量暂不支持 md 与其他文档混选：md 仅支持转 HTML，请分开批量"
+            : `批量仅支持同类文件（${
+                lockedSource ? `本页仅限 ${lockedSource.toUpperCase()}` : "首个文件的类别"
+              }），收到：${bad.map((f) => f.name).join("、") || "混合类别文件"}`
+        );
+        setPickSeq((n) => n + 1);
+        return;
       }
     }
+    setPicked(fs);
+    setPickError("");
+    setPickSeq((n) => n + 1);
+    // 目标自动适配：当前目标不在该类别可选项时切到第一个
+    const options = targetOptionsFor(sourceExtOf(fs[0].name));
+    if (!options.includes(target)) {
+      setTarget(options[0]);
+    }
   }
+
+  const effectiveTarget = lockedTarget ?? target;
 
   return (
     <>
       <FileDrop
         accept={accept}
-        hint={copy.dropHint}
-        busy={busy}
-        onPick={applyPickedFile}
+        hint={
+          lockedSource
+            ? "可多选同格式文件批量转换"
+            : "拖拽文件到此处，或点击选择（可多选同类文件批量转换）"
+        }
+        busy={childBusy}
+        onPick={applyPicked}
       />
-      {file && (
+      {picked.length === 1 && (
         <p style={{ fontSize: 14, margin: "0 0 8px", color: "#111827" }}>
-          已选：{file.name}
+          已选：{picked[0].name}
+        </p>
+      )}
+      {picked.length > 1 && (
+        <p style={{ fontSize: 14, margin: "0 0 8px", color: "#111827" }}>
+          已选 {picked.length} 个文件（批量模式）
         </p>
       )}
       {pickError && (
@@ -184,61 +119,33 @@ export default function Converter({
       <p style={{ fontSize: 12, color: "#9ca3af" }}>
         {lockedSource
           ? `本页仅支持 ${lockedSource.toUpperCase()} 源文件`
-          : copy.limitHint}
+          : "支持 png / jpg / jpeg / webp / bmp / gif / doc / docx / xls / xlsx / ppt / pptx / odt / ods / odp / html / csv / txt / md / mp3 / wav / flac / aac / ogg / m4a"}
       </p>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        {!locked && targetOptions.length > 0 && (
-          <label style={{ fontSize: 14, color: "#374151" }}>
-            转换为：
-            <select
-              value={target}
-              onChange={(e) => {
-                setTarget(e.target.value);
-                resetResult();
-              }}
-              disabled={busy || !file}
-              style={{
-                marginLeft: 8,
-                padding: "6px 10px",
-                borderRadius: 8,
-                border: "1px solid #d1d5db",
-                background: "#fff",
-              }}
-            >
-              {targetOptions.map((t) => (
-                <option key={t} value={t}>
-                  {t.toUpperCase()}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        <button
-          onClick={handleConvert}
-          disabled={!file || busy || blocked}
-          style={{
-            padding: "10px 24px",
-            borderRadius: 8,
-            border: "none",
-            background: !file || busy || blocked ? "#c7cdd4" : "#2563eb",
-            color: "#fff",
-            cursor: !file || busy || blocked ? "not-allowed" : "pointer",
-          }}
-        >
-          {busy ? "转换中…" : "开始转换"}
-        </button>
-      </div>
-
-      {quota && <QuotaHints quota={quota} oversize={oversize} />}
-
-      <ConvertResult
-        phase={phase}
-        message={message}
-        downloadUrl={downloadUrl}
-        downloadName={downloadName}
-        pathUsed={pathUsed}
-      />
+      {picked.length === 1 && (
+        <SingleConverter
+          key={`s-${pickSeq}`}
+          file={picked[0]}
+          target={effectiveTarget}
+          onTargetChange={setTarget}
+          targetOptions={targetOptions}
+          quota={quota}
+          reloadQuota={reloadQuota}
+          onBusyChange={setChildBusy}
+        />
+      )}
+      {picked.length > 1 && (
+        <BatchQueue
+          key={`b-${pickSeq}`}
+          files={picked}
+          target={effectiveTarget}
+          onTargetChange={setTarget}
+          targetOptions={targetOptions}
+          quota={quota}
+          reloadQuota={reloadQuota}
+          onBusyChange={setChildBusy}
+        />
+      )}
     </>
   );
 }

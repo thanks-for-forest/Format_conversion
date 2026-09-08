@@ -26,10 +26,20 @@ interface Envelope<T> {
   message: string;
 }
 
+// 带HTTP状态码的错误：批量队列等调用方据 status 分支（如 429 中断）
+export class ApiStatusError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
 async function unwrap<T>(resp: Response, parse: (body: unknown) => Envelope<T>): Promise<T> {
   const body = parse(await resp.json());
   if (body.code !== 0 || !body.data) {
-    throw new Error(body.message || `HTTP ${resp.status}`);
+    throw new ApiStatusError(resp.status, body.message || `HTTP ${resp.status}`);
   }
   return body.data;
 }
