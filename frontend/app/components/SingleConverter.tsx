@@ -114,7 +114,7 @@ export default function SingleConverter({
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         {targetOptions.length > 0 && (
-          <label style={{ fontSize: 14, color: "#374151" }}>
+          <label style={{ fontSize: 14, color: "var(--body-color)" }}>
             转换为：
             <select
               value={target}
@@ -125,10 +125,12 @@ export default function SingleConverter({
               disabled={busy}
               style={{
                 marginLeft: 8,
-                padding: "6px 10px",
-                borderRadius: 8,
-                border: "1px solid #d1d5db",
-                background: "#fff",
+                padding: "8px 12px",
+                borderRadius: "var(--r-sm)",
+                border: "1px solid var(--line)",
+                background: "var(--card-bg)",
+                color: "var(--ink)",
+                fontWeight: 600,
               }}
             >
               {targetOptions.map((t) => (
@@ -144,10 +146,12 @@ export default function SingleConverter({
           disabled={busy || blocked}
           style={{
             padding: "10px 24px",
-            borderRadius: 8,
+            borderRadius: "var(--r-md)",
             border: "none",
-            background: busy || blocked ? "#c7cdd4" : "#2563eb",
+            background: busy || blocked ? "var(--disabled)" : "var(--brand)",
             color: "#fff",
+            fontSize: 14,
+            fontWeight: 600,
             cursor: busy || blocked ? "not-allowed" : "pointer",
           }}
         >

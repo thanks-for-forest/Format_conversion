@@ -16,11 +16,11 @@ const STATUS_TEXT: Record<BatchItem["status"], string> = {
 };
 
 const STATUS_COLOR: Record<BatchItem["status"], string> = {
-  pending: "#9ca3af",
-  converting: "#2563eb",
-  done: "#16a34a",
-  error: "#dc2626",
-  skipped: "#9ca3af",
+  pending: "var(--muted)",
+  converting: "var(--brand)",
+  done: "var(--brand)",
+  error: "var(--danger)",
+  skipped: "var(--muted)",
 };
 
 export default function BatchQueue({
@@ -100,7 +100,7 @@ export default function BatchQueue({
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         {targetOptions.length > 0 && (
-          <label style={{ fontSize: 14, color: "#374151" }}>
+          <label style={{ fontSize: 14, color: "var(--body-color)" }}>
             转换为：
             <select
               value={target}
@@ -112,10 +112,12 @@ export default function BatchQueue({
               disabled={running}
               style={{
                 marginLeft: 8,
-                padding: "6px 10px",
-                borderRadius: 8,
-                border: "1px solid #d1d5db",
-                background: "#fff",
+                padding: "8px 12px",
+                borderRadius: "var(--r-sm)",
+                border: "1px solid var(--line)",
+                background: "var(--card-bg)",
+                color: "var(--ink)",
+                fontWeight: 600,
               }}
             >
               {targetOptions.map((t) => (
@@ -131,10 +133,12 @@ export default function BatchQueue({
           disabled={running || blocked}
           style={{
             padding: "10px 24px",
-            borderRadius: 8,
+            borderRadius: "var(--r-md)",
             border: "none",
-            background: running || blocked ? "#c7cdd4" : "#2563eb",
+            background: running || blocked ? "var(--disabled)" : "var(--brand)",
             color: "#fff",
+            fontSize: 14,
+            fontWeight: 600,
             cursor: running || blocked ? "not-allowed" : "pointer",
           }}
         >
@@ -167,7 +171,7 @@ export default function BatchQueue({
               </span>
               <span style={{ flexShrink: 0, color: STATUS_COLOR[it.status] }}>
                 {it.status === "done" && it.url ? (
-                  <a href={it.url} download={it.name} style={{ color: "#2563eb" }}>
+                  <a href={it.url} download={it.name} style={{ color: "var(--brand)", fontWeight: 600 }}>
                     下载 {it.name}
                   </a>
                 ) : (
@@ -186,10 +190,11 @@ export default function BatchQueue({
             disabled={packing}
             style={{
               padding: "8px 18px",
-              borderRadius: 8,
-              border: "1px solid #2563eb",
-              background: "#fff",
-              color: "#2563eb",
+              borderRadius: "var(--r-md)",
+              border: "1px solid var(--brand)",
+              background: "var(--card-bg)",
+              color: "var(--brand)",
+              fontWeight: 600,
               cursor: packing ? "wait" : "pointer",
             }}
           >
@@ -199,12 +204,12 @@ export default function BatchQueue({
             <a
               href={packUrl}
               download="batch-converted.zip"
-              style={{ marginLeft: 12, fontSize: 14, color: "#16a34a" }}
+              style={{ marginLeft: 12, fontSize: 14, color: "var(--brand)", fontWeight: 600 }}
             >
               保存 batch-converted.zip
             </a>
           )}
-          {packError && <p style={{ color: "#dc2626", fontSize: 13 }}>{packError}</p>}
+          {packError && <p style={{ color: "var(--danger)", fontSize: 13 }}>{packError}</p>}
         </div>
       )}
     </>

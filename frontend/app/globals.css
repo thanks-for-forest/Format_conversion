@@ -11,6 +11,7 @@
   --page-bg: #f7f9f8; /* 页面浅底 */
   --card-bg: #ffffff; /* 卡面 */
   --line: #e4e8e6; /* 分隔线 / 虚线框 */
+  --disabled: #c7cdd4; /* 禁用态按钮底色 */
   --danger: #dc2626;
   /* 圆角 */
   --r-lg: 20px; /* 页面级大卡 */

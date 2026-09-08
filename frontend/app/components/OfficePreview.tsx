@@ -37,15 +37,22 @@ export default function OfficePreview({ file }: { file: File }) {
 
   if (state === "loading") {
     return (
-      <p style={{ fontSize: 13, color: "#6b7280", textAlign: "center", margin: 0 }}>
+      <p
+        style={{
+          fontSize: 13,
+          color: "var(--muted)",
+          textAlign: "center",
+          margin: 0,
+        }}
+      >
         正在生成预览…（首次需数秒）
       </p>
     );
   }
   if (state === "error") {
     return (
-      <div style={{ fontSize: 13, color: "#6b7280", textAlign: "center" }}>
-        <p style={{ margin: "0 0 6px", color: "#dc2626" }}>{errMsg}</p>
+      <div style={{ fontSize: 13, color: "var(--muted)", textAlign: "center" }}>
+        <p style={{ margin: "0 0 6px", color: "var(--danger)" }}>{errMsg}</p>
         <p style={{ margin: 0 }}>可直接开始转换。</p>
       </div>
     );

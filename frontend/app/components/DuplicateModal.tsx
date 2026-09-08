@@ -18,7 +18,7 @@ export default function DuplicateModal({
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0,0,0,.4)",
+        background: "rgba(18,20,29,.45)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -27,21 +27,21 @@ export default function DuplicateModal({
     >
       <div
         style={{
-          background: "#fff",
-          borderRadius: 12,
+          background: "var(--card-bg)",
+          borderRadius: "var(--r-md)",
           padding: 20,
           maxWidth: 340,
           width: "90%",
-          boxShadow: "0 10px 30px rgba(0,0,0,.15)",
+          boxShadow: "var(--shadow-card)",
         }}
       >
-        <h3 style={{ margin: "0 0 8px", fontSize: 16, color: "#111827" }}>
+        <h3 style={{ margin: "0 0 8px", fontSize: 16, color: "var(--ink)" }}>
           出现同名文件，请核实
         </h3>
-        <p style={{ fontSize: 13, color: "#6b7280", margin: "0 0 12px" }}>
+        <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 12px" }}>
           已选择列表中存在同名文件：
           <br />
-          <strong style={{ color: "#111827" }}>{names.join("、")}</strong>
+          <strong style={{ color: "var(--ink)" }}>{names.join("、")}</strong>
         </p>
         <div
           style={{
@@ -54,10 +54,11 @@ export default function DuplicateModal({
           <button
             onClick={onCancel}
             style={{
-              padding: "6px 14px",
-              borderRadius: 8,
-              border: "1px solid #d1d5db",
-              background: "#fff",
+              padding: "8px 14px",
+              borderRadius: "var(--r-sm)",
+              border: "1px solid var(--line)",
+              background: "var(--card-bg)",
+              color: "var(--body-color)",
               fontSize: 13,
               cursor: "pointer",
             }}
@@ -67,11 +68,12 @@ export default function DuplicateModal({
           <button
             onClick={onRename}
             style={{
-              padding: "6px 14px",
-              borderRadius: 8,
-              border: "1px solid #2563eb",
-              background: "#fff",
-              color: "#2563eb",
+              padding: "8px 14px",
+              borderRadius: "var(--r-sm)",
+              border: "1px solid var(--brand)",
+              background: "var(--card-bg)",
+              color: "var(--brand)",
+              fontWeight: 600,
               fontSize: 13,
               cursor: "pointer",
             }}
@@ -81,11 +83,12 @@ export default function DuplicateModal({
           <button
             onClick={onOverwrite}
             style={{
-              padding: "6px 14px",
-              borderRadius: 8,
+              padding: "8px 14px",
+              borderRadius: "var(--r-sm)",
               border: "none",
-              background: "#2563eb",
+              background: "var(--brand)",
               color: "#fff",
+              fontWeight: 600,
               fontSize: 13,
               cursor: "pointer",
             }}

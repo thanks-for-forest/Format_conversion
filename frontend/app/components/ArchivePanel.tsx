@@ -38,18 +38,19 @@ function downloadBlob(blob: Blob, name: string): void {
 const buttonStyle: React.CSSProperties = {
   marginLeft: 8,
   padding: "8px 16px",
-  borderRadius: 8,
+  borderRadius: "var(--r-md)",
   border: "none",
-  background: "#2563eb",
+  background: "var(--brand)",
   color: "#fff",
+  fontWeight: 600,
   cursor: "pointer",
 };
 
 const sectionStyle: React.CSSProperties = {
   marginTop: 16,
   padding: 16,
-  border: "1px solid #e5e7eb",
-  borderRadius: 8,
+  border: "1px solid var(--line)",
+  borderRadius: "var(--r-sm)",
 };
 
 export default function ArchivePanel() {
@@ -173,7 +174,7 @@ export default function ArchivePanel() {
                 <a
                   href={URL.createObjectURL(new Blob([e.data as BlobPart]))}
                   download={e.name}
-                  style={{ color: "#2563eb" }}
+                  style={{ color: "var(--brand)", fontWeight: 600 }}
                   onClick={(ev) => {
                     // 点击后延迟回收 object URL（下载已触发）
                     const url = (ev.target as HTMLAnchorElement).href;
@@ -182,7 +183,7 @@ export default function ArchivePanel() {
                 >
                   {e.name}
                 </a>
-                <span style={{ color: "#9ca3af", marginLeft: 6 }}>
+                <span style={{ color: "var(--muted)", marginLeft: 6 }}>
                   {(e.data.length / 1024).toFixed(1)} KB
                 </span>
               </li>
@@ -196,12 +197,12 @@ export default function ArchivePanel() {
           style={{
             marginTop: 12,
             fontSize: 14,
-            color: message.includes("完成") ? "#059669" : "#dc2626",
+            color: message.includes("完成") ? "var(--brand)" : "var(--danger)",
           }}
         >
           {message}
           {pathUsed && (
-            <span style={{ color: "#9ca3af" }}>
+            <span style={{ color: "var(--muted)" }}>
               {" "}
               · {pathUsed === "local" ? "本地（文件未上传）" : "服务端"}
             </span>
@@ -209,7 +210,7 @@ export default function ArchivePanel() {
         </p>
       )}
       {blocked && (
-        <p style={{ color: "#dc2626", fontSize: 13 }}>
+        <p style={{ color: "var(--danger)", fontSize: 13 }}>
           今日次数已用完，明日重置（每日 UTC 零点）。
         </p>
       )}

@@ -98,49 +98,49 @@ export default function FilePreviewModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 8,
-            padding: "12px 16px",
-            borderBottom: "1px solid #e5e7eb",
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
-            <p
-              style={{
-                margin: 0,
-                fontSize: 14,
-                fontWeight: 600,
-                color: "#111827",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-              title={file.name}
-            >
-              {file.name}
-            </p>
-            <p style={{ margin: 0, fontSize: 12, color: "#9ca3af" }}>
-              {formatSize(file.size)} · {file.type || "未知类型"}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
             style={{
-              border: "none",
-              background: "none",
-              fontSize: 20,
-              lineHeight: 1,
-              cursor: "pointer",
-              color: "#6b7280",
-              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+              padding: "12px 16px",
+              borderBottom: "1px solid var(--line)",
             }}
           >
-            ×
-          </button>
-        </div>
+            <div style={{ minWidth: 0 }}>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "var(--ink)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+                title={file.name}
+              >
+                {file.name}
+              </p>
+              <p style={{ margin: 0, fontSize: 12, color: "var(--muted)" }}>
+                {formatSize(file.size)} · {file.type || "未知类型"}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              style={{
+                border: "none",
+                background: "none",
+                fontSize: 20,
+                lineHeight: 1,
+                cursor: "pointer",
+                color: "var(--muted)",
+                flexShrink: 0,
+              }}
+            >
+              ×
+            </button>
+          </div>
         <div
           style={{
             padding: 16,
@@ -170,7 +170,7 @@ export default function FilePreviewModal({
                 lineHeight: 1.6,
                 whiteSpace: "pre-wrap",
                 wordBreak: "break-all",
-                color: "#111827",
+                color: "var(--ink)",
               }}
             >
               {text}

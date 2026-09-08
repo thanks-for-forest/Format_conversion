@@ -13,7 +13,7 @@ export default function QuotaHints({
 }) {
   const hintStyle: React.CSSProperties = {
     marginTop: 8,
-    color: "#dc2626",
+    color: "var(--danger)",
     fontSize: 13,
   };
   if (oversize) {

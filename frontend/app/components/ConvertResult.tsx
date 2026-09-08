@@ -25,15 +25,15 @@ export default function ConvertResult({
   if (phase === "done") {
     return (
       <div style={{ marginTop: 24 }}>
-        <p style={{ color: "#059669" }}>{COPY.done}</p>
+        <p style={{ color: "var(--brand)", fontWeight: 600 }}>{COPY.done}</p>
         <a
           href={downloadUrl}
           download={downloadName}
-          style={{ color: "#2563eb", fontWeight: 600 }}
+          style={{ color: "var(--brand)", fontWeight: 600, textDecoration: "underline" }}
         >
           {downloadName}
         </a>
-        <p style={{ fontSize: 12, color: "#6b7280", marginTop: 8 }}>
+        <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8 }}>
           转换方式：{pathUsed === "local" ? COPY.localPath : COPY.serverPath}
         </p>
       </div>
@@ -41,7 +41,7 @@ export default function ConvertResult({
   }
   if (phase === "error") {
     return (
-      <p style={{ marginTop: 24, color: "#dc2626" }}>
+      <p style={{ marginTop: 24, color: "var(--danger)" }}>
         {COPY.errorPrefix}
         {message}
       </p>

@@ -29,7 +29,7 @@ export default function PickedFiles({
         style={{
           fontSize: 14,
           margin: "0 0 4px",
-          color: "#111827",
+          color: "var(--ink)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -45,7 +45,7 @@ export default function PickedFiles({
             style={{
               border: "none",
               background: "none",
-              color: "#9ca3af",
+              color: "var(--muted)",
               fontSize: 12,
               cursor: "pointer",
               textDecoration: "underline",
@@ -61,8 +61,8 @@ export default function PickedFiles({
           margin: 0,
           padding: "4px 8px",
           fontSize: 12,
-          color: "#374151",
-          background: "#f9fafb",
+          color: "var(--body-color)",
+          background: "var(--page-bg)",
           borderRadius: 8,
           maxHeight: 120,
           overflowY: "auto",
@@ -94,7 +94,8 @@ export default function PickedFiles({
                   background: "none",
                   padding: 0,
                   fontSize: 12,
-                  color: "#2563eb",
+                  color: "var(--brand)",
+                  fontWeight: 600,
                   cursor: "pointer",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -113,7 +114,7 @@ export default function PickedFiles({
                 gap: 6,
               }}
             >
-              <span style={{ color: "#9ca3af" }}>{formatSize(f.size)}</span>
+              <span style={{ color: "var(--muted)" }}>{formatSize(f.size)}</span>
               {!busy && (
                 <button
                   onClick={() => onRemove(i)}
@@ -121,7 +122,7 @@ export default function PickedFiles({
                   style={{
                     border: "none",
                     background: "none",
-                    color: "#dc2626",
+                    color: "var(--danger)",
                     fontSize: 13,
                     lineHeight: 1,
                     cursor: "pointer",

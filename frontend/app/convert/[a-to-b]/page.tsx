@@ -118,25 +118,25 @@ export default async function ConvertPage({ params }: PageProps) {
       lockedTarget={combo.to}
       heading={
         <>
-          <h1 style={{ fontSize: 24, margin: 0 }}>
+          <h1 style={{ fontSize: 28, lineHeight: 1.3, margin: 0, color: "var(--ink)" }}>
             {F} 转 {T}
           </h1>
-          <p style={{ color: "#6b7280" }}>{copy.intro}</p>
+          <p style={{ color: "var(--body-color)" }}>{copy.intro}</p>
         </>
       }
       below={
-        <section style={{ marginTop: 24, fontSize: 13, color: "#6b7280" }}>
-          <h2 style={{ fontSize: 15, color: "#111827" }}>转换步骤</h2>
+        <section style={{ marginTop: 24, fontSize: 13, color: "var(--muted)" }}>
+          <h2 style={{ fontSize: 15, color: "var(--ink)" }}>转换步骤</h2>
           <ol style={{ paddingLeft: 20, lineHeight: 1.8, margin: 0 }}>
             {copy.steps.map((step) => (
               <li key={step}>{step}</li>
             ))}
           </ol>
-          <h2 style={{ fontSize: 15, color: "#111827" }}>其他格式转换</h2>
+          <h2 style={{ fontSize: 15, color: "var(--ink)" }}>其他格式转换</h2>
           <p style={{ lineHeight: 1.8, margin: 0 }}>
             {others.map((c, i) => (
               <span key={c.slug}>
-                <Link href={`/convert/${c.slug}`} style={{ color: "#2563eb" }}>
+                <Link href={`/convert/${c.slug}`} style={{ color: "var(--brand)" }}>
                   {c.from.toUpperCase()} 转 {c.to.toUpperCase()}
                 </Link>
                 {i < others.length - 1 ? " · " : ""}
@@ -145,11 +145,11 @@ export default async function ConvertPage({ params }: PageProps) {
           </p>
           <p style={{ lineHeight: 1.8, margin: "8px 0 0" }}>
             压缩包工具：
-            <Link href="/convert/files-to-zip" style={{ color: "#2563eb" }}>
+            <Link href="/convert/files-to-zip" style={{ color: "var(--brand)" }}>
               文件打包成 ZIP
             </Link>{" "}
             ·{" "}
-            <Link href="/convert/zip-to-files" style={{ color: "#2563eb" }}>
+            <Link href="/convert/zip-to-files" style={{ color: "var(--brand)" }}>
               在线解压 ZIP / TAR.GZ
             </Link>
           </p>
