@@ -1,11 +1,12 @@
-"""Celery 转换任务（切片 3b：替换进程内线程 worker；切片 10a/10b：按目标格式路由）。"""
+"""Celery 转换任务（切片 3b 起异步化；10a/10b/10e 按源类别与目标格式路由）。"""
 
 from celery.utils.log import get_task_logger
 
 from app.core.audio_formats import AUDIO_OUTPUT_FORMATS
 from app.core.doc_formats import DOC_OUTPUT_FORMATS
 from app.core.errors import ApiError
-from app.services import audio_service, convert_service, doc_service
+from app.core.video_formats import VIDEO_INPUT_FORMATS, VIDEO_OUTPUT_FORMATS
+from app.services import audio_service, convert_service, doc_service, video_service
 from app.services.task_store import STORE
 from app.workers.celery_app import celery_app
 
@@ -21,7 +22,17 @@ def run_conversion(task_id: str) -> None:
         return
     STORE.mark_running(task_id)
     try:
-        if task.target_format in DOC_OUTPUT_FORMATS:
+        if task.source_format in VIDEO_INPUT_FORMATS:
+            # 视频源：容器互转，或提取音轨（mp3 复用音频链路，其 -vn 只留音轨）
+            if task.target_format in VIDEO_OUTPUT_FORMATS:
+                video_service.convert_video(
+                    task.in_path, task.out_path, task.target_format
+                )
+            else:
+                audio_service.convert_audio(
+                    task.in_path, task.out_path, task.target_format
+                )
+        elif task.target_format in DOC_OUTPUT_FORMATS:
             doc_service.convert_document(
                 task.in_path, task.out_path, task.target_format
             )

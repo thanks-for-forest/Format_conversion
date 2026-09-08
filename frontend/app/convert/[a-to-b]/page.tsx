@@ -3,9 +3,10 @@ import Link from "next/link";
 import SiteFrame from "../../components/SiteFrame";
 import { type Combo, COMBOS, parseCombo } from "../../lib/formats";
 
-// SEO 落地页：/convert/X-to-Y 静态组合页（图片 12 + 文档转 PDF 12 + 音频互转 30 + MD 转 HTML）。
+// SEO 落地页：/convert/X-to-Y 静态组合页（图片 12 + 文档转 PDF 12 + 音频互转 30
+// + 视频互转 20 + 提取音轨 5 + MD 转 HTML）。
 // generateStaticParams 预渲染全部组合；dynamicParams=false 使非法 slug 直接 404。
-// 文案按类别分支：图片本地优先 / 文档服务端 LibreOffice / 音频服务端 ffmpeg / md 本地渲染。
+// 文案按类别分支：图片本地优先 / 文档 LibreOffice / 音频视频 ffmpeg / md 本地渲染。
 
 export const dynamicParams = false;
 
@@ -58,6 +59,30 @@ function buildCopy(combo: Combo): {
         `选择或拖入 ${F} 音频文件`,
         `点击「开始转换」，服务端转换完成后自动下载 ${T} 文件`,
         "文件在服务端处理完即删，不会留存",
+      ],
+    };
+  }
+  if (combo.category === "video") {
+    if (combo.to === "mp3") {
+      return {
+        title: `${F} 转 MP3 - 免费在线提取音轨`,
+        description: `免费在线把 ${F} 视频中的音频提取成 MP3：服务端 ffmpeg 转换，文件处理完即删、不留存，无需注册即可使用。`,
+        intro: `免费在线把 ${F} 视频中的音频提取成 MP3：上传后在服务端用 ffmpeg 提取音轨，文件处理完即删，无需注册即可使用。`,
+        steps: [
+          `选择或拖入 ${F} 视频`,
+          "点击「开始转换」，服务端提取音轨后自动下载 MP3 文件",
+          "文件在服务端处理完即删，不会留存",
+        ],
+      };
+    }
+    return {
+      title: `${F} 转 ${T} - 免费在线视频格式转换`,
+      description: `免费在线把 ${F} 视频转换成 ${T}：服务端 ffmpeg 转码，文件处理完即删、不留存，无需注册即可使用。`,
+      intro: `免费在线把 ${F} 视频转换成 ${T}：上传后在服务端用 ffmpeg 转码，文件处理完即删，无需注册即可使用。`,
+      steps: [
+        `选择或拖入 ${F} 视频`,
+        `点击「开始转换」，服务端转码完成后自动下载 ${T} 文件`,
+        "视频转码耗时较长，请耐心等待；文件处理完即删",
       ],
     };
   }

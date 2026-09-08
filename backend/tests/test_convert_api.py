@@ -154,13 +154,14 @@ def test_reject_bad_magic_and_mismatch() -> None:
 
 
 def test_reject_bad_ext_and_target() -> None:
-    """非白名单扩展名（.txt）与仅输入/未知目标（bmp、tiff）均拒绝。"""
+    """非白名单扩展名（.txt 转图片目标）与仅输入/未知目标（bmp、tiff）均拒绝。"""
+    # .txt 是合法文档源，但目标 jpg 不属于文档输出 → 400（源支持、目标不支持）
     wrong_ext = client.post(
         "/api/convert",
         files={"file": ("x.txt", _image_bytes("png"), "application/octet-stream")},
         data={"target": "jpg"},
     )
-    assert wrong_ext.status_code == 415
+    assert wrong_ext.status_code == 400
 
     input_only = client.post(
         "/api/convert",

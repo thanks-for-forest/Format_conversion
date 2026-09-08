@@ -40,6 +40,11 @@ from app.core.formats import (
     normalize_ext,
 )
 from app.core.responses import ok
+from app.core.video_formats import (
+    VIDEO_INPUT_FORMATS,
+    VIDEO_OUTPUT_FORMATS,
+    VideoFormat,
+)
 from app.models.task import ConversionTask
 from app.services import quota
 from app.services.task_store import STORE
@@ -51,44 +56,48 @@ router = APIRouter(prefix="/api", tags=["convert"])
 
 CHUNK_SIZE = 1024 * 1024
 
-# 文档源扩展名白名单提示文案（与 core/doc_formats.py 注册表一致）
-_DOC_SOURCE_HINT = (
-    "仅支持 doc / docx / xls / xlsx / ppt / pptx /"
-    " odt / ods / odp / html / csv / txt（扩展名）"
+# 全类别源扩展名提示（源扩展名不在任何注册表时给出）
+_ALL_SOURCE_HINT = (
+    "仅支持 png / jpg / webp / bmp / gif / doc / docx / xls / xlsx / ppt / pptx /"
+    " odt / ods / odp / html / csv / txt / mp3 / wav / flac / aac / ogg / m4a /"
+    " mp4 / mov / mkv / webm / avi（扩展名）"
 )
-# 音频源扩展名白名单提示文案（与 core/audio_formats.py 注册表一致）
-_AUDIO_SOURCE_HINT = "仅支持 mp3 / wav / flac / aac / ogg / m4a（扩展名）"
-# 音频输出提示（与音频注册表一致）
 _AUDIO_OUTPUT_HINT = "音频目标仅支持 mp3 / wav / flac / aac / ogg / m4a"
+_VIDEO_OUTPUT_HINT = "视频目标仅支持 mp4 / mov / mkv / webm / avi / mp3（提取音轨）"
+
+AnyFormat = ImageFormat | DocFormat | AudioFormat | VideoFormat
 
 
-def _validate_request(
-    file: UploadFile, target: str
-) -> ImageFormat | DocFormat | AudioFormat:
-    """请求参数与文件名预检：目标/源扩展名白名单（音频/文档/图片三分支）。"""
+def _validate_request(file: UploadFile, target: str) -> AnyFormat:
+    """预检：按源扩展名定类别，目标须属于该类别允许的输出集合。"""
     target_ext = normalize_ext(target)
-    if target_ext in AUDIO_OUTPUT_FORMATS:
-        audio_source = AUDIO_INPUT_FORMATS.get(ext_of_filename(file.filename or ""))
-        if audio_source is None:
-            raise ApiError(415, _AUDIO_SOURCE_HINT)
-        return audio_source
-    if target_ext in DOC_OUTPUT_FORMATS:
-        doc_source = DOC_INPUT_FORMATS.get(ext_of_filename(file.filename or ""))
-        if doc_source is None:
-            raise ApiError(415, _DOC_SOURCE_HINT)
-        return doc_source
-    if target_ext not in OUTPUT_FORMATS:
-        raise ApiError(400, f"仅支持输出 png / jpg / webp / pdf；{_AUDIO_OUTPUT_HINT}")
-    source = INPUT_FORMATS.get(ext_of_filename(file.filename or ""))
+    source_ext = ext_of_filename(file.filename or "")
+
+    if source_ext in VIDEO_INPUT_FORMATS:
+        # 视频源：互转或提取音轨（mp3 复用音频链路）
+        if target_ext not in VIDEO_OUTPUT_FORMATS and target_ext != "mp3":
+            raise ApiError(400, _VIDEO_OUTPUT_HINT)
+        return VIDEO_INPUT_FORMATS[source_ext]
+    if source_ext in AUDIO_INPUT_FORMATS:
+        if target_ext not in AUDIO_OUTPUT_FORMATS:
+            raise ApiError(400, _AUDIO_OUTPUT_HINT)
+        return AUDIO_INPUT_FORMATS[source_ext]
+    if source_ext in DOC_INPUT_FORMATS:
+        if target_ext not in DOC_OUTPUT_FORMATS:
+            raise ApiError(400, "文档目标仅支持 pdf")
+        return DOC_INPUT_FORMATS[source_ext]
+    source = INPUT_FORMATS.get(source_ext)
     if source is None:
-        raise ApiError(415, "仅支持 png / jpg / webp / bmp / gif（扩展名）")
+        raise ApiError(415, _ALL_SOURCE_HINT)
+    if target_ext not in OUTPUT_FORMATS:
+        raise ApiError(400, "仅支持输出 png / jpg / webp")
     return source
 
 
 def _save_upload(
     file: UploadFile,
     task_id: str,
-    source: ImageFormat | DocFormat | AudioFormat,
+    source: AnyFormat,
     head: bytes,
     limit: int,
 ) -> int:
@@ -110,11 +119,13 @@ def _save_upload(
 
 
 def _result_media_type(ext: str) -> str:
-    """按目标扩展名取结果文件 MIME（图片 / 音频 / 文档三注册表）。"""
+    """按目标扩展名取结果文件 MIME（图片 / 音频 / 文档 / 视频四注册表）。"""
     if ext in OUTPUT_FORMATS:
         return media_type_of(ext)
     if ext in AUDIO_OUTPUT_FORMATS:
         return AUDIO_OUTPUT_FORMATS[ext].media_type
+    if ext in VIDEO_OUTPUT_FORMATS:
+        return VIDEO_OUTPUT_FORMATS[ext].media_type
     return output_media_type(ext)
 
 

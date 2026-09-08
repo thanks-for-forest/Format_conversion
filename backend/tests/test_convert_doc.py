@@ -159,8 +159,8 @@ def test_doc_rejects_unknown_ext_and_target() -> None:
 
 
 def test_image_target_pdf_rejected_for_image_source() -> None:
-    """图片源文件请求转 PDF：不在文档源白名单，415。"""
+    """图片源请求转 PDF：目标不属于图片输出白名单，400（源支持、目标不支持）。"""
     buf = io.BytesIO()
     Image.new("RGB", (8, 8), "red").save(buf, "PNG")
     resp = _upload_doc("img.png", buf.getvalue())
-    assert resp.status_code == 415
+    assert resp.status_code == 400

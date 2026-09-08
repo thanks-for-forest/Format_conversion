@@ -1,7 +1,7 @@
 // 前端格式单一来源：与后端 core/formats.py（图片）、core/doc_formats.py（文档）、
-// core/audio_formats.py（音频）口径一致。
+// core/audio_formats.py（音频）、core/video_formats.py（视频）口径一致。
 
-export type Category = "image" | "doc" | "audio";
+export type Category = "image" | "doc" | "audio" | "video";
 
 export interface Combo {
   slug: string; // 如 png-to-jpg（路由参数）
@@ -33,6 +33,10 @@ export const DOC_TARGET_EXTS = ["pdf"];
 // 音频类别（切片 10b）：6 格式互转，全部走服务端 ffmpeg（本地 wasm 留后续切片）
 export const AUDIO_SOURCE_EXTS = ["mp3", "wav", "flac", "aac", "ogg", "m4a"];
 
+// 视频类别（切片 10e）：5 容器互转 + 提取音轨（视频→mp3），全部服务端 ffmpeg
+export const VIDEO_SOURCE_EXTS = ["mp4", "mov", "mkv", "webm", "avi"];
+export const VIDEO_TARGET_EXTS = ["mp4", "mov", "mkv", "webm", "avi"];
+
 // 文件选择框 accept 属性的别名映射（jpeg 与 jpg 同义）
 export const ACCEPT_ALIAS: Record<string, string> = { jpg: ".jpg,.jpeg" };
 
@@ -62,6 +66,16 @@ const AUDIO_COMBOS: Combo[] = AUDIO_SOURCE_EXTS.flatMap((from) =>
   }))
 );
 
+// 视频互转 5×4 + 提取音轨（视频→mp3，复用 X-to-Y 语义），全部服务端 ffmpeg
+const VIDEO_COMBOS: Combo[] = VIDEO_SOURCE_EXTS.flatMap((from) =>
+  [...VIDEO_TARGET_EXTS.filter((to) => to !== from), "mp3"].map((to) => ({
+    slug: `${from}-to-${to}`,
+    from,
+    to,
+    category: "video" as const,
+  }))
+);
+
 // Markdown 本地渲染为 HTML（浏览器端，不上传；服务端不支持 md 源）
 export const MD_TO_HTML: Combo = {
   slug: "md-to-html",
@@ -70,11 +84,12 @@ export const MD_TO_HTML: Combo = {
   category: "doc",
 };
 
-// 全部合法组合：图片互转 + 文档转 PDF + 音频互转 + MD 转 HTML
+// 全部合法组合：图片互转 + 文档转 PDF + 音频互转 + 视频互转/提取音轨 + MD 转 HTML
 export const COMBOS: Combo[] = [
   ...IMAGE_COMBOS,
   ...DOC_COMBOS,
   ...AUDIO_COMBOS,
+  ...VIDEO_COMBOS,
   MD_TO_HTML,
 ];
 
@@ -83,6 +98,7 @@ export const ALL_SOURCE_EXTS = [
   ...SOURCE_EXTS,
   ...DOC_SOURCE_EXTS,
   ...AUDIO_SOURCE_EXTS,
+  ...VIDEO_SOURCE_EXTS,
   "md",
 ];
 
@@ -100,12 +116,20 @@ export function sourceExtOf(name: string): string {
 export function categoryOf(ext: string): Category {
   if (ext === "md" || DOC_SOURCE_EXTS.includes(ext)) return "doc";
   if (AUDIO_SOURCE_EXTS.includes(ext)) return "audio";
+  if (VIDEO_SOURCE_EXTS.includes(ext)) return "video";
   return "image";
 }
 
-// 首页目标格式下拉：图片互转排除同格式；文档源 → pdf；md 仅本地 html；音频互转排除同格式
+// 首页目标格式下拉：图片互转排除同格式；文档源 → pdf；md 仅本地 html；
+// 音频互转排除同格式；视频互转排除同格式 + mp3 提取音轨
 export function targetOptionsFor(sourceExt: string): string[] {
   if (sourceExt === "md") return ["html"];
+  if (VIDEO_SOURCE_EXTS.includes(sourceExt)) {
+    return [
+      ...VIDEO_TARGET_EXTS.filter((t) => t !== sourceExt),
+      "mp3",
+    ];
+  }
   if (AUDIO_SOURCE_EXTS.includes(sourceExt)) {
     return AUDIO_SOURCE_EXTS.filter((t) => t !== sourceExt);
   }

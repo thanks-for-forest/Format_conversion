@@ -119,7 +119,7 @@ export default function Converter({
       <p style={{ fontSize: 12, color: "#9ca3af" }}>
         {lockedSource
           ? `本页仅支持 ${lockedSource.toUpperCase()} 源文件`
-          : "支持 png / jpg / jpeg / webp / bmp / gif / doc / docx / xls / xlsx / ppt / pptx / odt / ods / odp / html / csv / txt / md / mp3 / wav / flac / aac / ogg / m4a"}
+          : "支持 png / jpg / webp / bmp / gif / doc / docx / xls / xlsx / ppt / pptx / odt / ods / odp / html / csv / txt / md / mp3 / wav / flac / aac / ogg / m4a / mp4 / mov / mkv / webm / avi"}
       </p>
 
       {picked.length === 1 && (
