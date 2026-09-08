@@ -1,6 +1,6 @@
 # 架构草案（ARCH）
 
-> 版本：v0.22.4　关联 PRD v0.3.1　更新日期：2026-09-08
+> 版本：v0.22.5　关联 PRD v0.3.1　更新日期：2026-09-08
 
 ## 1. 技术栈（定稿）
 
@@ -206,3 +206,4 @@ rejected(审核/配额拦截)  ←─ 上传
 | v0.22.2 | 选择改**累积式**（用户反馈：第二次选择覆盖了之前的文件）。`appendPicked` 逐文件校验追加：首个文件定类别，后续同类才收（异类忽略并提示「已忽略 N 个文件」）；同名替换；doc 类 md/Office 混选仍禁。清单升级为可交互：单项 × 移除 + 标题「清空」（转换运行中禁用，防孤儿请求）；FileDrop onChange 后清空 input.value（同一文件可重复触发选择）。移除/追加即时同步目标下拉（syncTarget） | 累积 vs 覆盖：覆盖语义下用户无法分多次凑齐一批文件，累积+移除才符合「凑一批再转」心智；类别校验从「整批拒绝」改为「逐文件忽略」——已选的不被误伤；移除仅在未开始转换时开放（转换中 files 冻结），避免与进行中队列竞态 |
 | v0.22.3 | 同名文件从静默替换改为**弹窗决策**（用户反馈）。`DuplicateModal`：检测到同名 → 模态「出现同名文件，请核实」，三选【覆盖旧文件】【自动重命名 a(1).ext 递增】【跳过新文件】，一次策略应用于全部冲突项。实现：File.name 只读 → 重命名用 `new File([原文件], 新名)` 包装（内容零拷贝）；清单 UI 抽 `PickedFiles.tsx`（Converter 回到 230 行）；非冲突文件先入列，冲突项挂起等决策。浏览器实测三路径全过 | 静默替换会让用户丢文件而不自知；三选一覆盖了「我要新版本 / 都要 / 选错了」全部意图；重命名不能直接改 File.name——File 构造器包装是零成本方案；冲突基准（dup.base）与决策后状态解耦，模态期间状态不会被并发操作污染 |
 | v0.22.4 | 清单文件名可点击 → **内容预览浮层**（用户需求：点击文件名查看文件内容）。`FilePreviewModal` 按类型渲染：图片 `<img>` / 音频 `<audio>` / 视频 `<video>`（blob URL）/ txt·csv·md·html 源码 `<pre>` / Office 文档占位提示（浏览器无法原生渲染，真预览需转 PDF 链路后置）；浮层含文件名/大小/MIME 头部与关闭。实现要点：blob URL 用 **lazy useState 挂载时创建 + 卸载 revoke**（React 19 lint 禁止 effect 内同步 setState），上层以 `key={name-idx}` 强制换文件重挂载；文本读取带 alive 标志防卸载后 setState；预览浮层全屏遮挡底层，验证时注意先关浮层再操作清单 | File 在内存中，跨路由会丢状态——页内全屏浮层是「另一界面」体验的最低成本实现；Office 真预览（服务端转 PDF 回传）列为候选迭代；浏览器实测图片（blob img）/ 文本（pre 内容）/ Office（占位）三路径全过 |
+| v0.22.5 | 两个 dev 期实战 bug 修复 + 环境固化：① 预览浮层图片**破图**（用户实测发现）——blob URL 在 lazy useState 创建、effect cleanup revoke，Next dev 的 React StrictMode（挂载→模拟卸载→重挂载）时序下旧 URL 被撤销而 state 仍指向它 → 创建/撤销都移入同一 effect（重挂载重建，src 始终有效），验证升级为 `naturalWidth > 0` 真渲染断言（此前只查 src 前缀是盲区）；② `removeAt` 移除**最后一个文件**时 `next[0].name` 抛 TypeError（clearPicked 有 `?.` 防护而 removeAt 漏了）→ 补齐 `next[0]?.name ?? ""`；③ `package.json` dev 脚本固化 `-p 3100`（本机 3000 被 WSL Grafana 占用，Next 自动跳端口导致多次连错地址） | StrictMode 下「挂载时创建副作用资源」的模式天然脆弱——effect 内创建+cleanup 撤销才是资源生命周期的正确形状（lint 的 set-state-in-effect 例外需要注释说明理由）；同类空值防护应对齐（一处有防护一处没有就是 bug 温床）；端口冲突属于环境事实，固化进脚本而非依赖记忆 |

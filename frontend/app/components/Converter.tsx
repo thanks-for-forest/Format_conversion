@@ -152,7 +152,8 @@ export default function Converter({
     setPicked(next);
     setPickError("");
     setPickSeq((n) => n + 1);
-    syncTarget(sourceExtOf(next[0].name));
+    // 移除最后一个文件时 next 为空数组，须与 clearPicked 同样做空值防护
+    syncTarget(sourceExtOf(next[0]?.name ?? ""));
   }
 
   function clearPicked() {
