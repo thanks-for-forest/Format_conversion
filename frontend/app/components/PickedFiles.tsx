@@ -15,11 +15,13 @@ export default function PickedFiles({
   busy,
   onRemove,
   onClear,
+  onPreview,
 }: {
   files: File[];
   busy: boolean;
   onRemove: (idx: number) => void;
   onClear: () => void;
+  onPreview: (idx: number) => void;
 }) {
   return (
     <div style={{ margin: "0 0 8px" }}>
@@ -81,10 +83,27 @@ export default function PickedFiles({
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
+                minWidth: 0,
               }}
-              title={f.name}
             >
-              {f.name}
+              <button
+                onClick={() => onPreview(i)}
+                title={`预览 ${f.name}`}
+                style={{
+                  border: "none",
+                  background: "none",
+                  padding: 0,
+                  fontSize: 12,
+                  color: "#2563eb",
+                  cursor: "pointer",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  maxWidth: "100%",
+                }}
+              >
+                {f.name}
+              </button>
             </span>
             <span
               style={{

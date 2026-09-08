@@ -17,6 +17,7 @@ import {
 import BatchQueue from "./BatchQueue";
 import DuplicateModal from "./DuplicateModal";
 import FileDrop from "./FileDrop";
+import FilePreviewModal from "./FilePreviewModal";
 import PickedFiles from "./PickedFiles";
 import SingleConverter from "./SingleConverter";
 
@@ -43,6 +44,7 @@ export default function Converter({
   const [target, setTarget] = useState(lockedTarget ?? "jpg");
   const [childBusy, setChildBusy] = useState(false); // 单/批转换运行态（禁换文件防孤儿请求）
   const [dup, setDup] = useState<DupConflict | null>(null); // 同名冲突待决策
+  const [previewIdx, setPreviewIdx] = useState<number | null>(null); // 内容预览浮层
 
   const locked = Boolean(lockedSource && lockedTarget);
   const accept = lockedSource
@@ -188,6 +190,7 @@ export default function Converter({
           busy={childBusy}
           onRemove={removeAt}
           onClear={clearPicked}
+          onPreview={setPreviewIdx}
         />
       )}
       {pickError && (
@@ -225,6 +228,14 @@ export default function Converter({
           onOverwrite={() => resolveDup("overwrite")}
           onRename={() => resolveDup("rename")}
           onCancel={() => resolveDup("skip")}
+        />
+      )}
+
+      {previewIdx !== null && picked[previewIdx] && (
+        <FilePreviewModal
+          key={`${picked[previewIdx].name}-${previewIdx}`}
+          file={picked[previewIdx]}
+          onClose={() => setPreviewIdx(null)}
         />
       )}
     </>
