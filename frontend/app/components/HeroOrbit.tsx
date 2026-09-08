@@ -42,7 +42,7 @@ export default function HeroOrbit() {
       style={{
         position: "relative",
         width: "100%",
-        aspectRatio: "10 / 9",
+        aspectRatio: "1 / 1", // 正方容器保证百分比半径在 x/y 像素相等 → 轨迹为正圆
       }}
     >
       {/* 中央插画（不参与旋转；cover 聚焦主体：女孩 + 云 + 文件图标） */}
@@ -68,8 +68,9 @@ export default function HeroOrbit() {
       <div className="orbit-spin" style={{ position: "absolute", inset: 0 }}>
         {FORMATS.map((f, i) => {
           const angle = (i / FORMATS.length) * Math.PI * 2 - Math.PI / 2;
-          const x = 50 + 47 * Math.cos(angle);
-          const y = 50 + 45 * Math.sin(angle);
+          const r = 45; // 圆形轨道半径（容器百分比，正方容器下 x/y 像素一致）
+          const x = 50 + r * Math.cos(angle);
+          const y = 50 + r * Math.sin(angle);
           return (
             <div
               key={f}
