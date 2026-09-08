@@ -123,6 +123,19 @@ body {
   }
 }
 
+/* 亮点卡田字排版：桌面 2×2，窄屏单列 */
+.glass-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  text-align: left;
+}
+@media (max-width: 640px) {
+  .glass-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 a {
   color: inherit;
   text-decoration: none;

@@ -81,14 +81,7 @@ export default function Home() {
             <p style={{ fontSize: 12, color: "var(--muted)", margin: "-22px 0 24px" }}>
               将光标移到卡片上查看详情
             </p>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-                gap: 16,
-                textAlign: "left",
-              }}
-            >
+            <div className="glass-grid">
               {HIGHLIGHTS.map((h) => (
                 <div key={h.title} className="glass-card">
                   <div style={{ fontSize: 22, marginBottom: 8 }} aria-hidden>
