@@ -16,11 +16,14 @@ import Converter from "./Converter";
 export default function SiteFrame({
   heading,
   below,
+  belowCard,
   lockedSource,
   lockedTarget,
 }: {
   heading: ReactNode;
   below?: ReactNode;
+  /** 白卡之外的全宽分段（首页产品描述等长页面内容） */
+  belowCard?: ReactNode;
   lockedSource?: string;
   lockedTarget?: string;
 }) {
@@ -117,6 +120,8 @@ export default function SiteFrame({
           {below}
         </div>
       </section>
+
+      {belowCard}
 
       <footer
         style={{
