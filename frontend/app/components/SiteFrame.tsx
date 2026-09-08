@@ -6,6 +6,7 @@
 // 首页与落地页共用容器，改此一处全站生效。
 
 import type { ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { logout } from "../lib/api";
 import { useQuota } from "../lib/useQuota";
@@ -61,11 +62,37 @@ export default function SiteFrame({
 
       <section
         style={{
-          background: "linear-gradient(180deg, var(--brand-soft), var(--page-bg))",
+          position: "relative",
           padding: "48px 16px 72px",
+          overflow: "hidden",
+          background: "var(--brand-soft)",
         }}
       >
-        <div style={{ maxWidth: "var(--maxw)", margin: "0 auto", textAlign: "center" }}>
+        {/* hero 背景图（public/hero-bg.jpg）：白色渐变遮罩保证标题可读；首屏资源 priority 提升 LCP */}
+        <Image
+          src="/hero-bg.jpg"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          style={{ objectFit: "cover", objectPosition: "center" }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,.82), rgba(255,255,255,.62) 60%, rgba(247,249,248,.92))",
+          }}
+        />
+        <div
+          style={{
+            position: "relative",
+            maxWidth: "var(--maxw)",
+            margin: "0 auto",
+            textAlign: "center",
+          }}
+        >
           {heading}
         </div>
       </section>
