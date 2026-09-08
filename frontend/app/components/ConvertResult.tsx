@@ -53,8 +53,16 @@ export default function ConvertResult({
     const IMG_IN = ["png", "jpg", "webp", "bmp", "gif"];
     const comparable = IMG_IN.includes(sourceExt) && (target === "jpg" || target === "webp");
     return (
-      <div style={{ marginTop: 24 }}>
-        <p style={{ color: "var(--brand)", fontWeight: 600 }}>{COPY.done}</p>
+      <div
+        style={{
+          marginTop: 24,
+          background: "var(--brand-soft)",
+          border: "1px solid var(--line)",
+          borderRadius: "var(--r-md)",
+          padding: "14px 18px",
+        }}
+      >
+        <p style={{ color: "var(--ink)", fontWeight: 600, margin: 0 }}>✅ {COPY.done}</p>
         <a
           href={downloadUrl}
           download={downloadName}
@@ -79,10 +87,19 @@ export default function ConvertResult({
   }
   if (phase === "error") {
     return (
-      <p style={{ marginTop: 24, color: "var(--danger)" }}>
+      <div
+        style={{
+          marginTop: 24,
+          background: "#fef2f2",
+          border: "1px solid #fecaca",
+          borderRadius: "var(--r-md)",
+          padding: "12px 18px",
+          color: "var(--danger)",
+        }}
+      >
         {COPY.errorPrefix}
         {message}
-      </p>
+      </div>
     );
   }
   return null;

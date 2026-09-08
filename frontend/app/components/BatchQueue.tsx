@@ -52,6 +52,8 @@ export default function BatchQueue({
   }, [running, onBusyChange]);
 
   const doneCount = items?.filter((it) => it.status === "done").length ?? 0;
+  const processedCount =
+    items?.filter((it) => it.status !== "pending").length ?? 0;
   const finished = items !== null && !running;
   // 预检：配额用尽或任一文件超单文件上限时禁用
   const quotaExhausted = !!quota && quota.used.count >= quota.limit.count;
@@ -146,6 +148,32 @@ export default function BatchQueue({
           {running ? "批量转换中…" : `批量转换（${files.length} 个）`}
         </button>
       </div>
+
+      {items && running && files.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          <div
+            style={{
+              height: 6,
+              background: "var(--page-bg)",
+              borderRadius: 3,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                width: `${Math.round((processedCount / files.length) * 100)}%`,
+                height: "100%",
+                background: "var(--brand)",
+                borderRadius: 3,
+                transition: "width .3s ease",
+              }}
+            />
+          </div>
+          <p style={{ fontSize: 12, color: "var(--muted)", margin: "6px 0 0" }}>
+            已处理 {processedCount}/{files.length} · 完成 {doneCount}
+          </p>
+        </div>
+      )}
 
       {items && (
         <ul style={{ listStyle: "none", padding: 0, margin: "16px 0 0", fontSize: 13 }}>

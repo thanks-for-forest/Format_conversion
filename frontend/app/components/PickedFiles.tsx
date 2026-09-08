@@ -10,6 +10,22 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+// 按扩展名取类型图标（清单项一眼识别文件类别）
+const TYPE_ICONS: Record<string, string> = {
+  png: "🖼️", jpg: "🖼️", jpeg: "🖼️", webp: "🖼️", bmp: "🖼️", gif: "🎞️",
+  doc: "📄", docx: "📄", odt: "📄", txt: "📝", md: "📝", html: "🌐",
+  xls: "📊", xlsx: "📊", csv: "📊",
+  ppt: "📽️", pptx: "📽️", odp: "📽️",
+  mp3: "🎵", wav: "🎵", flac: "🎵", aac: "🎵", ogg: "🎵", m4a: "🎵",
+  mp4: "🎬", mov: "🎬", mkv: "🎬", webm: "🎬", avi: "🎬",
+  zip: "🗜️", gz: "🗜️",
+};
+
+function typeIcon(name: string): string {
+  const ext = name.includes(".") ? name.split(".").pop()!.toLowerCase() : "";
+  return TYPE_ICONS[ext] ?? "📁";
+}
+
 export default function PickedFiles({
   files,
   busy,
@@ -103,7 +119,7 @@ export default function PickedFiles({
                   maxWidth: "100%",
                 }}
               >
-                {f.name}
+                {typeIcon(f.name)} {f.name}
               </button>
             </span>
             <span
