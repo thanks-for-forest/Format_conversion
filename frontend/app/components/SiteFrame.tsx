@@ -17,6 +17,7 @@ export default function SiteFrame({
   heading,
   below,
   belowCard,
+  heroArt,
   lockedSource,
   lockedTarget,
 }: {
@@ -24,6 +25,8 @@ export default function SiteFrame({
   below?: ReactNode;
   /** 白卡之外的全宽分段（首页产品描述等长页面内容） */
   belowCard?: ReactNode;
+  /** hero 右列自定义视觉（默认展示插画图；首页传入环绕徽章舞台） */
+  heroArt?: ReactNode;
   lockedSource?: string;
   lockedTarget?: string;
 }) {
@@ -82,21 +85,23 @@ export default function SiteFrame({
           }}
         >
           <div style={{ flex: "1 1 420px", textAlign: "center" }}>{heading}</div>
-          <div style={{ flex: "0 1 400px", minWidth: 280 }}>
-            <Image
-              src="/hero-bg.jpg"
-              alt="文件格式转换插画：女孩在云端的笔记本前处理 PDF、视频、音频与图片文件"
-              width={2848}
-              height={1600}
-              priority
-              sizes="(max-width: 800px) 100vw, 40vw"
-              style={{
-                width: "100%",
-                height: "auto",
-                borderRadius: "var(--r-md)",
-                boxShadow: "var(--shadow-card)",
-              }}
-            />
+          <div style={{ flex: "0 1 420px", minWidth: 280 }}>
+            {heroArt ?? (
+              <Image
+                src="/hero-bg.jpg"
+                alt="文件格式转换插画：女孩在云端的笔记本前处理 PDF、视频、音频与图片文件"
+                width={2848}
+                height={1600}
+                priority
+                sizes="(max-width: 800px) 100vw, 40vw"
+                style={{
+                  width: "100%",
+                  height: "auto",
+                  borderRadius: "var(--r-md)",
+                  boxShadow: "var(--shadow-card)",
+                }}
+              />
+            )}
           </div>
         </div>
       </section>

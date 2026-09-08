@@ -63,6 +63,22 @@ body {
   transform: scale(0.98);
 }
 
+/* hero 环绕徽章浮动动画（配合 translate(-50%,-50%) 定位，向上浮 6px 回落） */
+@keyframes hero-float {
+  0%,
+  100% {
+    transform: translate(-50%, -50%);
+  }
+  50% {
+    transform: translate(-50%, calc(-50% - 6px));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-orbit-badge {
+    animation: none !important;
+  }
+}
+
 a {
   color: inherit;
   text-decoration: none;
