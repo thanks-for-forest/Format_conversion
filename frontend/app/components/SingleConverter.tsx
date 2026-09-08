@@ -46,6 +46,8 @@ export default function SingleConverter({
   const [downloadUrl, setDownloadUrl] = useState("");
   const [downloadName, setDownloadName] = useState("");
   const [pathUsed, setPathUsed] = useState<"local" | "server" | null>(null);
+  const [outSize, setOutSize] = useState<number | null>(null); // 结果体积（数据行/对比滑块）
+  const [beforeUrl, setBeforeUrl] = useState(""); // 原图预览 URL（仅图片组合的对比滑块用）
 
   const busy = phase === "converting";
   const sourceExt = sourceExtOf(file.name);
@@ -72,6 +74,11 @@ export default function SingleConverter({
           setPathUsed("local");
           setDownloadUrl(URL.createObjectURL(blob));
           setDownloadName(outputName(file.name, target));
+          setOutSize(blob.size);
+          setBeforeUrl((prev) => {
+            if (prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+            return URL.createObjectURL(file);
+          });
           setPhase("done");
           reportLocalCount()
             .then(reloadQuota) // 本地计次不计流量，失败不影响结果
@@ -92,6 +99,11 @@ export default function SingleConverter({
       }
       setDownloadUrl(buildDownloadUrl(created.task_id, created.pass_key));
       setDownloadName(outputName(file.name, target));
+      setOutSize(info.out_size);
+      setBeforeUrl((prev) => {
+        if (prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(file);
+      });
       setPhase("done");
       reloadQuota();
     } catch (err) {
@@ -104,6 +116,11 @@ export default function SingleConverter({
     setPhase("idle");
     setMessage("");
     setDownloadUrl((prev) => {
+      if (prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return "";
+    });
+    setOutSize(null);
+    setBeforeUrl((prev) => {
       if (prev.startsWith("blob:")) URL.revokeObjectURL(prev);
       return "";
     });
@@ -167,6 +184,11 @@ export default function SingleConverter({
         downloadUrl={downloadUrl}
         downloadName={downloadName}
         pathUsed={pathUsed}
+        sourceExt={sourceExt}
+        target={target}
+        inSize={file.size}
+        outSize={outSize}
+        beforeUrl={beforeUrl}
       />
     </>
   );
