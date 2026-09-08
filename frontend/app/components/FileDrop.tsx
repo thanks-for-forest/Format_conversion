@@ -46,7 +46,10 @@ export default function FileDrop({
         type="file"
         accept={accept}
         multiple
-        onChange={(e) => onPick(Array.from(e.target.files ?? []))}
+        onChange={(e) => {
+          onPick(Array.from(e.target.files ?? []));
+          e.target.value = ""; // 清空以便下次选择同一文件仍触发 change
+        }}
         disabled={busy}
         style={{ display: "block", margin: "0 auto" }}
       />

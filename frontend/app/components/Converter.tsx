@@ -42,55 +42,72 @@ export default function Converter({
   const firstExt = picked.length > 0 ? sourceExtOf(picked[0].name) : "";
   const targetOptions = locked && lockedTarget ? [lockedTarget] : targetOptionsFor(firstExt);
 
-  function applyPicked(fs: File[]) {
-    if (fs.length === 0) {
-      setPicked([]);
-      setPickError("");
-      setPickSeq((n) => n + 1);
-      return;
-    }
-    if (fs.length === 1) {
-      // 单文件：白名单校验（与既有行为一致）
-      const ext = sourceExtOf(fs[0].name);
-      const allowed = lockedSource ? [lockedSource] : ALL_SOURCE_EXTS;
-      if (!allowed.includes(ext)) {
-        setPicked([]);
-        setPickError(
-          lockedSource
-            ? `本页仅支持 ${lockedSource.toUpperCase()} 源文件，收到：${fs[0].name}`
-            : `仅支持 ${ALL_SOURCE_EXTS.join(" / ")}，收到：${fs[0].name}`
-        );
-        setPickSeq((n) => n + 1);
-        return;
+  // 累积选择（切片 10c 反馈）：新文件逐个校验后追加，不覆盖已有选择。
+  // 规则：锁定页仅同锁定源；同类文件可累积（首个文件定类别）；
+  // doc 类禁止 md 与 Office 文档混选；同名文件视为替换。
+  function appendPicked(incoming: File[]) {
+    if (incoming.length === 0) return;
+    const base = picked[0] ?? incoming[0];
+    const baseCat = categoryOf(sourceExtOf(base.name));
+    const effective = [...picked];
+    const rejected: string[] = [];
+    for (const f of incoming) {
+      const ext = sourceExtOf(f.name);
+      const cat = categoryOf(ext);
+      const allowedExt = lockedSource
+        ? ext === lockedSource
+        : ALL_SOURCE_EXTS.includes(ext);
+      if (!allowedExt) {
+        rejected.push(f.name);
+        continue;
       }
+      if (effective.length > 0 && cat !== baseCat) {
+        rejected.push(f.name);
+        continue;
+      }
+      if (cat === "doc") {
+        // md 仅支持本地转 HTML，与 Office 文档（服务端转 PDF）路由不同，不得混批
+        const fIsMd = ext === "md";
+        const hasMd = effective.some((p) => sourceExtOf(p.name) === "md");
+        const hasNonMd = effective.some((p) => sourceExtOf(p.name) !== "md");
+        if ((hasMd && !fIsMd) || (hasNonMd && fIsMd)) {
+          rejected.push(f.name);
+          continue;
+        }
+      }
+      const dupIdx = effective.findIndex((p) => p.name === f.name);
+      if (dupIdx >= 0) effective[dupIdx] = f;
+      else effective.push(f);
+    }
+    if (rejected.length > 0) {
+      setPickError(`已忽略 ${rejected.length} 个文件：${rejected.join("、")}`);
     } else {
-      // 批量：落地页须与锁定源一致；首页须同类且文档批不混 md（md 与 Office 路由不同）
-      const bad = lockedSource
-        ? fs.filter((f) => sourceExtOf(f.name) !== lockedSource)
-        : fs.filter((f) => categoryOf(sourceExtOf(f.name)) !== categoryOf(sourceExtOf(fs[0].name)));
-      const docMixed =
-        !lockedSource &&
-        categoryOf(sourceExtOf(fs[0].name)) === "doc" &&
-        fs.some((f) => sourceExtOf(f.name) === "md") &&
-        fs.some((f) => sourceExtOf(f.name) !== "md");
-      if (bad.length > 0 || docMixed) {
-        setPicked([]);
-        setPickError(
-          docMixed
-            ? "批量暂不支持 md 与其他文档混选：md 仅支持转 HTML，请分开批量"
-            : `批量仅支持同类文件（${
-                lockedSource ? `本页仅限 ${lockedSource.toUpperCase()}` : "首个文件的类别"
-              }），收到：${bad.map((f) => f.name).join("、") || "混合类别文件"}`
-        );
-        setPickSeq((n) => n + 1);
-        return;
-      }
+      setPickError("");
     }
-    setPicked(fs);
+    setPicked(effective);
+    setPickSeq((n) => n + 1);
+    syncTarget(sourceExtOf(effective[0].name));
+  }
+
+  function removeAt(idx: number) {
+    if (childBusy) return;
+    const next = picked.filter((_, i) => i !== idx);
+    setPicked(next);
     setPickError("");
     setPickSeq((n) => n + 1);
-    // 目标自动适配：当前目标不在该类别可选项时切到第一个
-    const options = targetOptionsFor(sourceExtOf(fs[0].name));
+    syncTarget(sourceExtOf(next[0].name));
+  }
+
+  function clearPicked() {
+    if (childBusy) return;
+    setPicked([]);
+    setPickError("");
+    setPickSeq((n) => n + 1);
+    syncTarget(sourceExtOf(picked[0]?.name ?? ""));
+  }
+
+  function syncTarget(ext: string) {
+    const options = targetOptionsFor(ext);
     if (!options.includes(target)) {
       setTarget(options[0]);
     }
@@ -105,20 +122,42 @@ export default function Converter({
         hint={
           lockedSource
             ? "可多选同格式文件批量转换"
-            : "拖拽文件到此处，或点击选择（可多选同类文件批量转换）"
+            : "拖拽文件到此处，或点击选择（可多次追加同类文件批量转换）"
         }
         busy={childBusy}
-        onPick={applyPicked}
+        onPick={appendPicked}
       />
-      {picked.length === 1 && (
-        <p style={{ fontSize: 14, margin: "0 0 8px", color: "#111827" }}>
-          已选：{picked[0].name}
-        </p>
-      )}
-      {picked.length > 1 && (
+      {picked.length > 0 && (
         <div style={{ margin: "0 0 8px" }}>
-          <p style={{ fontSize: 14, margin: "0 0 4px", color: "#111827" }}>
-            已选 {picked.length} 个文件（批量模式）
+          <p
+            style={{
+              fontSize: 14,
+              margin: "0 0 4px",
+              color: "#111827",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <span>
+              已选 {picked.length} 个文件
+              {picked.length > 1 ? "（批量模式）" : ""}
+            </span>
+            {!childBusy && (
+              <button
+                onClick={clearPicked}
+                style={{
+                  border: "none",
+                  background: "none",
+                  color: "#9ca3af",
+                  fontSize: 12,
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                }}
+              >
+                清空
+              </button>
+            )}
           </p>
           <ul
             style={{
@@ -153,8 +192,32 @@ export default function Converter({
                 >
                   {f.name}
                 </span>
-                <span style={{ flexShrink: 0, color: "#9ca3af" }}>
-                  {formatSize(f.size)}
+                <span
+                  style={{
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <span style={{ color: "#9ca3af" }}>{formatSize(f.size)}</span>
+                  {!childBusy && (
+                    <button
+                      onClick={() => removeAt(i)}
+                      title="移除该文件"
+                      style={{
+                        border: "none",
+                        background: "none",
+                        color: "#dc2626",
+                        fontSize: 13,
+                        lineHeight: 1,
+                        cursor: "pointer",
+                        padding: 0,
+                      }}
+                    >
+                      ×
+                    </button>
+                  )}
                 </span>
               </li>
             ))}
