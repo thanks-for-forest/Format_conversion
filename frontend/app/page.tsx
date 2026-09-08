@@ -53,7 +53,7 @@ export default function Home() {
       belowCard={
         <section
           style={{
-            background: "var(--card-bg)",
+            background: "linear-gradient(135deg, #dff2ea 0%, #e8ecff 55%, #dcecf9 100%)",
             borderTop: "1px solid var(--line)",
             padding: "56px 16px 64px",
           }}
@@ -78,6 +78,9 @@ export default function Home() {
               图片转换在浏览器本地完成，服务端转换的文件处理完即删，
               匿名即可使用，登录后每日额度更高。
             </p>
+            <p style={{ fontSize: 12, color: "var(--muted)", margin: "-22px 0 24px" }}>
+              将光标移到卡片上查看详情
+            </p>
             <div
               style={{
                 display: "grid",
@@ -87,22 +90,16 @@ export default function Home() {
               }}
             >
               {HIGHLIGHTS.map((h) => (
-                <div
-                  key={h.title}
-                  style={{
-                    background: "var(--page-bg)",
-                    borderRadius: "var(--r-md)",
-                    padding: "20px 18px",
-                    border: "1px solid var(--line)",
-                  }}
-                >
+                <div key={h.title} className="glass-card">
                   <div style={{ fontSize: 22, marginBottom: 8 }} aria-hidden>
                     {h.icon}
                   </div>
-                  <h3 style={{ fontSize: 15, color: "var(--ink)", margin: "0 0 6px" }}>{h.title}</h3>
-                  <p style={{ fontSize: 13, lineHeight: 1.7, color: "var(--body-color)", margin: 0 }}>
-                    {h.desc}
-                  </p>
+                  <h3 style={{ fontSize: 15, color: "var(--ink)", margin: 0 }}>{h.title}</h3>
+                  <div className="glass-desc">
+                    <p style={{ fontSize: 13, lineHeight: 1.7, color: "var(--body-color)", paddingTop: 6 }}>
+                      {h.desc}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>

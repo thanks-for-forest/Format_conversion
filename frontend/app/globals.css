@@ -86,6 +86,43 @@ body {
   }
 }
 
+/* 玻璃卡片（首页产品亮点）：半透明磨砂，悬停展开描述；触屏设备（无 hover）常显描述 */
+.glass-card {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--r-md);
+  padding: 20px 18px;
+  text-align: left;
+  transition: background 0.25s, box-shadow 0.25s, transform 0.25s;
+}
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.88);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card);
+}
+.glass-card .glass-desc {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.3s ease, opacity 0.3s ease;
+}
+.glass-card:hover .glass-desc {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.glass-card .glass-desc > p {
+  overflow: hidden;
+  margin: 0;
+}
+@media (hover: none) {
+  .glass-card .glass-desc {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+}
+
 a {
   color: inherit;
   text-decoration: none;
