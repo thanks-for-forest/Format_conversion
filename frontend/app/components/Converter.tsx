@@ -11,6 +11,13 @@ import BatchQueue from "./BatchQueue";
 import FileDrop from "./FileDrop";
 import SingleConverter from "./SingleConverter";
 
+// 文件大小展示（批量清单用）
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export default function Converter({
   quota,
   reloadQuota,
@@ -109,9 +116,50 @@ export default function Converter({
         </p>
       )}
       {picked.length > 1 && (
-        <p style={{ fontSize: 14, margin: "0 0 8px", color: "#111827" }}>
-          已选 {picked.length} 个文件（批量模式）
-        </p>
+        <div style={{ margin: "0 0 8px" }}>
+          <p style={{ fontSize: 14, margin: "0 0 4px", color: "#111827" }}>
+            已选 {picked.length} 个文件（批量模式）
+          </p>
+          <ul
+            style={{
+              listStyle: "none",
+              margin: 0,
+              padding: "4px 8px",
+              fontSize: 12,
+              color: "#374151",
+              background: "#f9fafb",
+              borderRadius: 8,
+              maxHeight: 120,
+              overflowY: "auto",
+            }}
+          >
+            {picked.map((f, i) => (
+              <li
+                key={`${f.name}-${i}`}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 8,
+                  padding: "2px 0",
+                }}
+              >
+                <span
+                  style={{
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                  title={f.name}
+                >
+                  {f.name}
+                </span>
+                <span style={{ flexShrink: 0, color: "#9ca3af" }}>
+                  {formatSize(f.size)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       {pickError && (
         <p style={{ margin: "0 0 8px", color: "#dc2626" }}>{pickError}</p>
