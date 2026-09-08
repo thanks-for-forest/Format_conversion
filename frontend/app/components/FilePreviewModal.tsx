@@ -1,13 +1,14 @@
 "use client";
 
 // 文件内容预览浮层（切片 10c 反馈）：点击清单文件名打开，按类型渲染：
-// 图片 <img> / 音频 <audio> / 视频 <video> / 文本（txt/csv/md/html 源码）/ Office 占位。
+// 图片 <img> / 音频 <audio> / 视频 <video> / 文本（txt/csv/md/html 源码）/ Office（服务端转 PDF 内嵌）。
 // File 对象在页面内存中，跨路由会丢失，故用全屏浮层而非独立路由。
 // blob URL 在 effect 中创建、cleanup 时 revoke（StrictMode 双挂载下会重建，保证 src 始终有效）；
 // 上层须以 key 强制换文件时重挂载。
 
 import { useEffect, useState } from "react";
 import { categoryOf, sourceExtOf } from "../lib/formats";
+import OfficePreview from "./OfficePreview";
 
 // 文本类扩展名（按源码显示）
 const TEXT_EXTS = ["txt", "csv", "md", "html"];
@@ -175,11 +176,7 @@ export default function FilePreviewModal({
               {text}
             </pre>
           )}
-          {kind === "office" && (
-            <p style={{ fontSize: 13, color: "#6b7280", textAlign: "center" }}>
-              该类型暂不支持内容预览，可直接开始转换。
-            </p>
-          )}
+          {kind === "office" && <OfficePreview file={file} />}
         </div>
       </div>
     </div>

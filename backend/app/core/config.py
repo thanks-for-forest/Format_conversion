@@ -58,6 +58,10 @@ SWEEP_ROW_RETENTION_DAYS = int(os.getenv("SWEEP_ROW_RETENTION_DAYS", "7"))
 SOFFICE_PATH = os.getenv("SOFFICE_PATH", "")  # 留空自动探测 PATH 与常见安装位置
 SOFFICE_TIMEOUT_SEC = int(os.getenv("SOFFICE_TIMEOUT_SEC", "120"))
 
+# ===== Office 内容预览（切片 11a：soffice 转 PDF 回传，不计转换配额） =====
+# 每日每 IP 预览次数上限（soffice 有 CPU 成本，独立轻量限流防滥用）
+PREVIEW_DAILY_COUNT = int(os.getenv("PREVIEW_DAILY_COUNT", "200"))
+
 # ===== 音视频转换（切片 10b/10e：ffmpeg 服务端） =====
 FFMPEG_PATH = os.getenv("FFMPEG_PATH", "")  # 留空自动探测 PATH 与常见安装位置
 FFMPEG_TIMEOUT_SEC = int(os.getenv("FFMPEG_TIMEOUT_SEC", "300"))

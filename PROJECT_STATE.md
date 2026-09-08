@@ -1,14 +1,16 @@
 # 项目状态（PROJECT_STATE）
 
-> 更新日期：2026-09-07
+> 更新日期：2026-09-08
 
 ## 当前阶段
 
-- 阶段：**实现阶段（切片 10d 完成：内容审核骨架）——转换功能全就绪，待上线动作**
-- 状态：切片 10d 已跑通——`services/moderation.py` 审核骨架（enabled 判定 / `_call_provider` 占位 / fail-closed 451）+ `/api/convert` 落盘后投递前接入（违规删文件 + mark_failed，配额已扣不退）+ config 补 `MODERATION_API_KEY/URL` 定义（原孤儿配置）+ KEY 空 = 未启用 + 启动 WARNING；**服务商接入后置**（PRD 3.6 已标注降级），图片优先
-- 质量闸门：ruff/mypy/pytest（+5 审核用例，全量 82 过）全绿
-- 浏览器回归：默认未启用时图片转换无感（本地转换正常）
-- 本片发现：`.env.example` 的审核变量从未进 config.py（孤儿配置，配了也不生效）——已补定义并写明启用语义（启用即 fail-closed 全量拒绝，服务商接入前勿配）
+- 阶段：**实现阶段（切片 11a 完成：Office 真预览）——增强功能三项中的第一项落地**
+- 状态：点击清单文件名即可直接预览 Office 文档内容（此前为占位提示）——后端 `POST /api/preview/office` 同步 soffice 转 PDF 流回传（即转即删、不计转换配额、Redis 日限流 200/次/IP 防滥用、不接审核），前端 `OfficePreview` 三态组件（loading/ready/error + iframe 原生 PDF 查看器，StrictMode 安全）；9 种 Office 格式全覆盖，渲染效果与真实转换一致
+- 批量交互链至此完整：多选 → 清单（文件名可点击预览：图/音/视/文本/Office）→ 累积式追加 → 同名弹窗决策 → 转换
+- 质量闸门：ruff/mypy/pytest（+6 预览用例，全量 88 过）+ eslint/next build（91 页）全绿
+- 浏览器 E2E：上传 docx → 点文件名 → iframe 显示 PDF，临时文件无残留
+- 本片踩坑：后端旧进程无 --reload 导致新路由 404（新增后端路由必须重启 uvicorn）；旧进程曾跑在全局 Python，已统一改用 .venv 启动
+- 环境固化：前端 dev 端口固定 3100（`package.json` dev 脚本 `-p 3100`，3000 被本机 WSL Grafana 占用）
 
 ## 安全审计（2026-09-07，standard 模式，10/10 维度覆盖）
 
@@ -38,8 +40,9 @@
 
 ## 下一步
 
-1. 上线：域名购买 → DNS → 服务器部署 compose 栈（生产清单：ENV=production / 强 SECRET_KEY / 域名 HTTPS / 审核接入评估）
-2. 候选迭代：内容审核真服务商接入（阿里云内容安全，图片优先）；ffmpeg.wasm 本地小文件音视频转换；i18n（zh/en）建议降级或后置（80 组合页文案抽取量大）
+1. 增强功能（用户拍板：先补增强再美化）：② 内容审核真服务商接入（阿里云内容安全，图片优先，需开通服务拿 API Key）；③ ffmpeg.wasm 本地转换（性价比最低，实测后再定去留）
+2. 前端美化（增强完成后）：设计 token → 基础组件 → 主页 → 落地页模板 → 账号页，按切片推进
+3. 上线：域名购买 → DNS → 服务器部署 compose 栈（生产清单：ENV=production / 强 SECRET_KEY / 域名 HTTPS / 审核接入评估）
 
 ## 部署（Docker Compose，切片 7）
 
@@ -56,6 +59,7 @@
 - 前置：本机 Redis 经 WSL docker（`wsl -d Ubuntu -u root -e bash -lc "docker start fc-redis"`）；**WSL 空闲会自动关机**，需挂常驻进程（如 `wsl -d Ubuntu -u root -e bash -lc "while true; do sleep 3600; done"` 后台运行）
 - API：`cd backend && uv run uvicorn app.main:app --port 8000`（须用 8000 或设 `NEXT_PUBLIC_API_BASE`——前端默认指向 `localhost:8000`；首次需 `uv run alembic upgrade head` 建表；无 Redis worker 时加 `$env:CELERY_TASK_ALWAYS_EAGER="1"` 同步执行）
 - Worker：`cd backend && uv run celery -A app.workers.celery_app worker -P solo -l info`（Windows 需 `-P solo`，prefork 不支持）
-- 前端：`cd frontend && pnpm dev`（WSL grafana 占用 3000 时用 `$env:PORT="3100"`，后端同步设 `FRONTEND_ORIGIN=http://localhost:3100`）
+- 前端：`cd frontend && pnpm dev`（dev 脚本已固定 `-p 3100`——3000 被 WSL grafana 占用；后端同步设 `FRONTEND_ORIGIN=http://localhost:3100`）
+- 后端 API 启动须用项目 .venv：`cd backend && .venv\Scripts\python.exe -m uvicorn app.main:app --port 8000`（全局 Python 缺依赖；新增路由须重启 uvicorn，无 --reload）
 - 测试：需 Redis 在线（conftest 用 REDIS_URL/1 库；本地转发不稳可设 `TEST_REDIS_URL` 指向 WSL IP）
 - 文档转换：需本机 LibreOffice（默认路径自动探测，特殊安装位置设 `SOFFICE_PATH`；未装时文档真转测试自动跳过）

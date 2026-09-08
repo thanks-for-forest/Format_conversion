@@ -169,3 +169,21 @@ export async function extractArchive(file: File): Promise<Blob> {
   }
   return resp.blob();
 }
+
+// ===== Office 内容预览（切片 11a）：soffice 转 PDF 流回传 =====
+
+export async function previewOffice(file: File, signal?: AbortSignal): Promise<Blob> {
+  const form = new FormData();
+  form.append("file", file);
+  const resp = await fetch(`${API_BASE}/api/preview/office`, {
+    method: "POST",
+    body: form,
+    credentials: "include",
+    signal,
+  });
+  if (!resp.ok) {
+    const body = (await resp.json().catch(() => null)) as Envelope<null> | null;
+    throw new ApiStatusError(resp.status, body?.message || `HTTP ${resp.status}`);
+  }
+  return resp.blob();
+}
