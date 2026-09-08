@@ -4,13 +4,11 @@
 
 ## 当前阶段
 
-- 阶段：**实现阶段（切片 11a 完成：Office 真预览）——增强功能三项中的第一项落地**
-- 状态：点击清单文件名即可直接预览 Office 文档内容（此前为占位提示）——后端 `POST /api/preview/office` 同步 soffice 转 PDF 流回传（即转即删、不计转换配额、Redis 日限流 200/次/IP 防滥用、不接审核），前端 `OfficePreview` 三态组件（loading/ready/error + iframe 原生 PDF 查看器，StrictMode 安全）；9 种 Office 格式全覆盖，渲染效果与真实转换一致
-- 批量交互链至此完整：多选 → 清单（文件名可点击预览：图/音/视/文本/Office）→ 累积式追加 → 同名弹窗决策 → 转换
-- 质量闸门：ruff/mypy/pytest（+6 预览用例，全量 88 过）+ eslint/next build（91 页）全绿
-- 浏览器 E2E：上传 docx → 点文件名 → iframe 显示 PDF，临时文件无残留
-- 本片踩坑：后端旧进程无 --reload 导致新路由 404（新增后端路由必须重启 uvicorn）；旧进程曾跑在全局 Python，已统一改用 .venv 启动
-- 环境固化：前端 dev 端口固定 3100（`package.json` dev 脚本 `-p 3100`，3000 被本机 WSL Grafana 占用）
+- 阶段：**实现阶段（前端美化切片 12a 完成：设计 token + 全站壳换装）**
+- 状态：用户选定 **TinyPNG 为设计基准**（暖色编辑风 + 极简聚焦）——浏览器实抓其设计参数（Noto Sans / 品牌绿 #00B075 / 文字 #12141D·#40444F / 16px 圆角 / 白卡+虚线拖拽区版式）后落地：`globals.css` 建立完整 CSS 变量体系（色板/字号/圆角/阴影，**亮色单主题**，砍掉暗色模式——工具站「快、可信」优先，与 TinyPNG 同款取舍）；`SiteFrame` 重排为「白底导航条 + 浅绿渐变 hero + 中央白色大卡 + footer 隐私声明」，首页与 80 个落地页一处换装全站生效；`FileDrop` 改 TinyPNG 式白色大虚线区 + 大字引导（input 以 12px 微型透明层保留可交互面）；`AuthBar` 导航化（登录绿色胶囊按钮）
+- 功能验证：换装后上传/清单/预览全链路正常（浏览器 E2E 复测）
+- 本片踩坑：`opacity:0` 的 input 被浏览器 AX 树过滤，自动化上传找不到元素 → 改 12px 微型透明层（label 包裹保证整块点击）；截图工具两次超时 → 改用 DOM 计算样式断言完成视觉验证
+- 遗留到后续美化切片：SingleConverter / BatchQueue / PickedFiles / 预览与同名弹窗仍是旧蓝色内联样式（切片 B 换品牌色）；落地页标题字号统一（切片 D）
 
 ## 安全审计（2026-09-07，standard 模式，10/10 维度覆盖）
 

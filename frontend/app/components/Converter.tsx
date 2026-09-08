@@ -180,7 +180,7 @@ export default function Converter({
         hint={
           lockedSource
             ? "可多选同格式文件批量转换"
-            : "拖拽文件到此处，或点击选择（可多次追加同类文件批量转换）"
+            : "可多次追加同类文件，凑一批批量转换"
         }
         busy={childBusy}
         onPick={appendPicked}

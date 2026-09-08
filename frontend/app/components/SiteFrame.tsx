@@ -1,10 +1,12 @@
 "use client";
 
-// 页面骨架：登录态 + 配额（useQuota）由骨架持有并传给 AuthBar 与 Converter，
-// 保证两者展示同一份配额状态。heading/below 为页面自定义内容（可序列化 JSX，
-// 服务端组件可直接传入）；首页与落地页共用容器样式。
+// 页面骨架（切片 12a 换装，借鉴 TinyPNG 版式）：白底导航条 + 浅绿 hero + 中央白色大卡。
+// 登录态 + 配额（useQuota）由骨架持有并传给 AuthBar 与 Converter，保证两者展示同一份
+// 配额状态。heading/below 为页面自定义内容（可序列化 JSX，服务端组件可直接传入）；
+// 首页与落地页共用容器，改此一处全站生效。
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { logout } from "../lib/api";
 import { useQuota } from "../lib/useQuota";
 import AuthBar from "./AuthBar";
@@ -27,25 +29,80 @@ export default function SiteFrame({
     logout().then(() => setUser(null)).finally(reloadQuota); // 退出后回到匿名档
 
   return (
-    <main
-      style={{
-        maxWidth: 520,
-        margin: "80px auto",
-        padding: 32,
-        border: "1px solid #e5e7eb",
-        borderRadius: 16,
-        fontFamily: "sans-serif",
-      }}
-    >
-      <AuthBar user={user} quota={quota} onLogout={handleLogout} />
-      {heading}
-      <Converter
-        quota={quota}
-        reloadQuota={reloadQuota}
-        lockedSource={lockedSource}
-        lockedTarget={lockedTarget}
-      />
-      {below}
-    </main>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      <header style={{ background: "var(--card-bg)", borderBottom: "1px solid var(--line)" }}>
+        <div
+          style={{
+            maxWidth: "var(--maxw)",
+            margin: "0 auto",
+            padding: "10px 16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span
+              style={{
+                width: 26,
+                height: 26,
+                borderRadius: 8,
+                background: "var(--brand)",
+                display: "inline-block",
+              }}
+              aria-hidden
+            />
+            <strong style={{ fontSize: 16, color: "var(--ink)" }}>格式转换</strong>
+          </Link>
+          <AuthBar user={user} quota={quota} onLogout={handleLogout} />
+        </div>
+      </header>
+
+      <section
+        style={{
+          background: "linear-gradient(180deg, var(--brand-soft), var(--page-bg))",
+          padding: "48px 16px 72px",
+        }}
+      >
+        <div style={{ maxWidth: "var(--maxw)", margin: "0 auto", textAlign: "center" }}>
+          {heading}
+        </div>
+      </section>
+
+      <section style={{ flex: 1, padding: "0 16px 48px" }}>
+        <div
+          style={{
+            maxWidth: "var(--maxw)",
+            margin: "-40px auto 0",
+            background: "var(--card-bg)",
+            borderRadius: "var(--r-lg)",
+            boxShadow: "var(--shadow-card)",
+            padding: 24,
+          }}
+        >
+          <Converter
+            quota={quota}
+            reloadQuota={reloadQuota}
+            lockedSource={lockedSource}
+            lockedTarget={lockedTarget}
+          />
+          {below}
+        </div>
+      </section>
+
+      <footer
+        style={{
+          borderTop: "1px solid var(--line)",
+          background: "var(--card-bg)",
+          padding: "14px 16px",
+          textAlign: "center",
+          fontSize: 12,
+          color: "var(--muted)",
+        }}
+      >
+        文件仅在服务器临时处理，转换完成下载后立即删除 · 不用于其他用途
+      </footer>
+    </div>
   );
 }

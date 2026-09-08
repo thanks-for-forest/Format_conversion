@@ -1,13 +1,27 @@
+/* 设计 token（切片 12a，借鉴 TinyPNG：品牌绿 + 暖灰文字 + 大圆角卡片）。
+   亮色单主题：工具站以「快、可信」为先，不做暗色模式（TinyPNG 同款取舍）。 */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* 色板 */
+  --brand: #00b075; /* 品牌绿：主 CTA / 链接 */
+  --brand-hover: #009a66;
+  --brand-soft: #e6f7f0; /* 品牌绿的浅底（拖拽悬停等） */
+  --ink: #12141d; /* 标题 / 强文字 */
+  --body-color: #40444f; /* 正文 */
+  --muted: #8a919c; /* 次要说明 */
+  --page-bg: #f7f9f8; /* 页面浅底 */
+  --card-bg: #ffffff; /* 卡面 */
+  --line: #e4e8e6; /* 分隔线 / 虚线框 */
+  --danger: #dc2626;
+  /* 圆角 */
+  --r-lg: 20px; /* 页面级大卡 */
+  --r-md: 16px; /* 按钮 / 中卡 */
+  --r-sm: 12px; /* 拖拽区 / 小件 */
+  /* 阴影 */
+  --shadow-card: 0 10px 40px rgba(18, 20, 29, 0.08);
+  /* 字体（Noto Sans 中文回退苹方/雅黑） */
+  --font: "Noto Sans", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+  /* 布局 */
+  --maxw: 760px;
 }
 
 html {
@@ -24,9 +38,9 @@ body {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--body-color);
+  background: var(--page-bg);
+  font-family: var(--font);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -40,10 +54,4 @@ body {
 a {
   color: inherit;
   text-decoration: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
 }

@@ -12,10 +12,12 @@ export default function Home() {
     <SiteFrame
       heading={
         <>
-          <h1 style={{ fontSize: 24, margin: 0 }}>文件格式转换</h1>
-          <p style={{ color: "#6b7280" }}>{SUBTITLE}</p>
-          <p style={{ fontSize: 14 }}>
-            <Link href="/archive" style={{ color: "#2563eb" }}>
+          <h1 style={{ fontSize: 32, lineHeight: 1.3, margin: "0 0 10px", color: "var(--ink)" }}>
+            在线文件格式转换
+          </h1>
+          <p style={{ fontSize: 14, color: "var(--body-color)" }}>{SUBTITLE}</p>
+          <p style={{ fontSize: 14, marginTop: 12 }}>
+            <Link href="/archive" style={{ color: "var(--brand)", fontWeight: 600 }}>
               压缩包打包 / 解压 →
             </Link>
           </p>
