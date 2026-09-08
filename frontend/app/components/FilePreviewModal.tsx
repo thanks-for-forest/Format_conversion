@@ -3,7 +3,8 @@
 // 文件内容预览浮层（切片 10c 反馈）：点击清单文件名打开，按类型渲染：
 // 图片 <img> / 音频 <audio> / 视频 <video> / 文本（txt/csv/md/html 源码）/ Office 占位。
 // File 对象在页面内存中，跨路由会丢失，故用全屏浮层而非独立路由。
-// blob URL 在挂载时创建（lazy useState）、卸载时 revoke；上层须以 key 强制换文件时重挂载。
+// blob URL 在 effect 中创建、cleanup 时 revoke（StrictMode 双挂载下会重建，保证 src 始终有效）；
+// 上层须以 key 强制换文件时重挂载。
 
 import { useEffect, useState } from "react";
 import { categoryOf, sourceExtOf } from "../lib/formats";
@@ -40,17 +41,17 @@ export default function FilePreviewModal({
   onClose: () => void;
 }) {
   const kind = kindOf(file);
-  // blob URL 仅挂载时创建一次（换文件由上层 key 重挂载），卸载时 revoke
-  const [url] = useState(() =>
-    kind === "text" || kind === "office" ? "" : URL.createObjectURL(file)
-  );
+  // 创建/撤销都在 effect 内：StrictMode 模拟卸载会 revoke 旧 URL，重挂载时重建，state 始终有效
+  const [url, setUrl] = useState("");
   const [text, setText] = useState("");
 
   useEffect(() => {
-    return () => {
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [url]);
+    if (kind === "text" || kind === "office") return;
+    const u = URL.createObjectURL(file);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- blob URL 生命周期管理，仅创建一次不循环
+    setUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [file, kind]);
 
   useEffect(() => {
     if (kind !== "text") return;
